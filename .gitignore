@@ -2,5 +2,7 @@ TXT/
 TUTORIAL/
 ASM/
 HASKELL/
+src/hs/jhc 
+src/hs/librts
 Session.vim
 GEMINI.md
