@@ -1,6 +1,0 @@
-quick and dirty bug scratchpad.
-
--- pattern binding
-(x :: Int) = 4
-
-ord is exported by predule.

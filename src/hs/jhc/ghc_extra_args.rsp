@@ -1,3 +1,0 @@
-src/cbits/md5sum.o
-src/cbits/lookup3.o
-src/StringTable/StringTable_cbits.o
