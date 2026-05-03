@@ -1,0 +1,12 @@
+undefined reference to `stdout'
+undefined reference to `fflush'
+undefined reference to `jhc_print_profile'
+undefined reference to `exit'
+undefined reference to `stderr'
+undefined reference to `fputs'
+undefined reference to `fprintf'
+undefined reference to `abort'
+undefined reference to `jhc_alloc_init'
+undefined reference to `jhc_hs_init'
+undefined reference to `setlocale'
+

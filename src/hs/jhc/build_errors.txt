@@ -1,0 +1,453 @@
+
+src/Doc/DocLike.hs:1:39: warning: [-Wdeprecated-flags]
+    -XOverlappingInstances is deprecated: instead use per-instance pragmas OVERLAPPING/OVERLAPPABLE/OVERLAPS
+  |
+1 | {-# LANGUAGE CPP,UndecidableInstances,OverlappingInstances #-}
+  |                                       ^^^^^^^^^^^^^^^^^^^^
+[ 66 of 178] Compiling C.Generate       ( src/C/Generate.hs, src/C/Generate.o ) [Source file changed]
+
+src/C/Generate.hs:174:18: error:
+    • No instance for (Semigroup (G Doc)) arising from a use of ‘terr’
+    • In the second argument of ‘($)’, namely ‘terr s’
+      In the expression: sd $ terr s
+      In an equation for ‘err’: err s = sd $ terr s
+    |
+174 |     err s = sd $ terr s
+    |                  ^^^^
+
+src/C/Generate.hs:177:17: error:
+    • No instance for (Semigroup (G Doc)) arising from a use of ‘terr’
+    • In the first argument of ‘SD’, namely ‘(terr s)’
+      In the expression: SD (terr s)
+      In an equation for ‘err’: err s = SD (terr s)
+    |
+177 |     err s = SD (terr s)
+    |                 ^^^^
+
+src/C/Generate.hs:181:39: error:
+    • No instance for (Semigroup (G Doc)) arising from a use of ‘<>’
+    • In the expression: text "return " <> draw e <> char ';'
+      In an equation for ‘draw’:
+          draw (SReturn e) = text "return " <> draw e <> char ';'
+      In the instance declaration for ‘Draw Stmt’
+    |
+181 |     draw (SReturn e) = text "return " <> draw e <> char ';'
+    |                                       ^^
+
+src/C/Generate.hs:217:18: error:
+    • No instance for (Semigroup (G Doc)) arising from a use of ‘terr’
+    • In the second argument of ‘($)’, namely ‘terr s’
+      In the expression: ED $ terr s
+      In an equation for ‘err’: err s = ED $ terr s
+    |
+217 |     err s = ED $ terr s
+    |                  ^^^^
+
+src/C/Generate.hs:230:17: error:
+    • No instance for (Semigroup (G Doc)) arising from a use of ‘terr’
+    • In the second argument of ‘($)’, namely ‘terr s’
+      In the expression: C $ terr s
+      In an equation for ‘err’: err s = C $ terr s
+    |
+230 |     err s = C $ terr s
+    |                 ^^^^
+
+src/C/Generate.hs:234:28: error:
+    • No instance for (Semigroup (G Doc)) arising from a use of ‘<>’
+    • In the expression: draw x <> char '*'
+      In an equation for ‘draw’: draw (TPtr x) = draw x <> char '*'
+      In the instance declaration for ‘Draw Type’
+    |
+234 |     draw (TPtr x) = draw x <> char '*'
+    |                            ^^
+
+src/C/Generate.hs:253:35: error:
+    • No instance for (Semigroup (G Doc)) arising from a use of ‘<>’
+    • In the first argument of ‘expDC’, namely
+        ‘(parens (draw t) <> pdraw e)’
+      In the expression: expDC (parens (draw t) <> pdraw e)
+      In an equation for ‘cast’:
+          cast t e = expDC (parens (draw t) <> pdraw e)
+    |
+253 | cast t e = expDC (parens (draw t) <> pdraw e)
+    |                                   ^^
+
+src/C/Generate.hs:255:37: error:
+    • Could not deduce (Semigroup (G Doc)) arising from a use of ‘<>’
+      from the context: (Draw d, Draw a)
+        bound by the inferred type of
+                   functionCall' :: (Draw d, Draw a) => d -> [a] -> Expression
+        at src/C/Generate.hs:255:1-60
+    • In the first argument of ‘expD’, namely
+        ‘(draw fe <> tupled (map draw es))’
+      In the expression: expD (draw fe <> tupled (map draw es))
+      In an equation for ‘functionCall'’:
+          functionCall' fe es = expD (draw fe <> tupled (map draw es))
+    |
+255 | functionCall' fe es = expD (draw fe <> tupled (map draw es))
+    |                                     ^^
+
+src/C/Generate.hs:531:35: error:
+    • No instance for (Semigroup (G Doc)) arising from a use of ‘<>’
+    • In the first argument of ‘sd’, namely
+        ‘(text "/* " <> text c <> text " */")’
+      In the first argument of ‘mappend’, namely
+        ‘sd (text "/* " <> text c <> text " */")’
+      In the expression:
+        sd (text "/* " <> text c <> text " */") `mappend` s
+    |
+531 |     annotate c s = sd (text "/* " <> text c <> text " */") `mappend` s
+    |                                   ^^
+[103 of 178] Compiling Grin.Lint        ( src/Grin/Lint.hs, src/Grin/Lint.o )
+
+src/Grin/Lint.hs:106:34: error:
+    Unexpected parallel statement in a list comprehension
+    Use ParallelListComp
+    |
+106 |         lts = [ (t,funRet n i) | t <- rts | i <- naturals ]
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^
+
+src/Grin/Lint.hs:200:35: error:
+    Not in scope: ‘Stats.null’
+    NB: the module ‘Stats’ does not export ‘null’.
+    Suggested fix:
+      Perhaps use one of these:
+        ‘Set.null’ (imported from Data.Set),
+        ‘Stats.new’ (imported from Stats)
+    |
+200 |     if transformSkipNoStats tp && Stats.null estat then do
+    |                                   ^^^^^^^^^^
+
+src/Grin/Lint.hs:204:26: error:
+    Not in scope: ‘Stats.null’
+    NB: the module ‘Stats’ does not export ‘null’.
+    Suggested fix:
+      Perhaps use one of these:
+        ‘Set.null’ (imported from Data.Set),
+        ‘Stats.new’ (imported from Stats)
+    |
+204 |     when (dodump && not (Stats.null estat)) $ Stats.printStat  name estat
+    |                          ^^^^^^^^^^
+
+src/Grin/Lint.hs:207:33: error:
+    Not in scope: ‘Stats.null’
+    NB: the module ‘Stats’ does not export ‘null’.
+    Suggested fix:
+      Perhaps use one of these:
+        ‘Set.null’ (imported from Data.Set),
+        ‘Stats.new’ (imported from Stats)
+    |
+207 |     if doIterate iterate (not $ Stats.null estat) then transformGrin tp { transformIterate = iterateStep iterate } prog' { grinStats = tstat } else return prog' { grinStats = tstat }
+    |                                 ^^^^^^^^^^
+[106 of 178] Compiling Grin.DeadCode    ( src/Grin/DeadCode.hs, src/Grin/DeadCode.o )
+
+src/Grin/DeadCode.hs:177:19: error:
+    • Could not deduce (MonadFail m) arising from a use of ‘whiz’
+      from the context: (MonadIO m, Collection b, Collection a,
+                         Fixable b, Fixable a, Elem b ~ Atom, Elem a ~ Atom)
+        bound by the type signature for:
+                   go :: forall (m :: * -> *) b a.
+                         (MonadIO m, Collection b, Collection a, Fixable b, Fixable a,
+                          Elem b ~ Atom, Elem a ~ Atom) =>
+                         Fixer
+                         -> Value a
+                         -> Value b
+                         -> Supply Tag Bool
+                         -> Supply (Tag, Int) Bool
+                         -> Supply Var Bool
+                         -> Bool
+                         -> (Tag, Lam)
+                         -> m Lam
+        at src/Grin/DeadCode.hs:(106,1)-(116,14)
+      Possible fix:
+        add (MonadFail m) to the context of
+          the type signature for:
+            go :: forall (m :: * -> *) b a.
+                  (MonadIO m, Collection b, Collection a, Fixable b, Fixable a,
+                   Elem b ~ Atom, Elem a ~ Atom) =>
+                  Fixer
+                  -> Value a
+                  -> Value b
+                  -> Supply Tag Bool
+                  -> Supply (Tag, Int) Bool
+                  -> Supply Var Bool
+                  -> Bool
+                  -> (Tag, Lam)
+                  -> m Lam
+    • In a stmt of a 'do' block:
+        (nl, _) <- whiz (\ _ -> id) h' f whizState (as :-> body)
+      In the expression:
+        do usedVars <- newSupply fixer
+           flip mapM_ (combineArgs fn as) $ \ (ap, Var v _) -> do ...
+           fn' <- supplyValue usedFuncs fn
+           let varValue v
+                 | v < v0 = sValue usedCafs v
+                 | otherwise = sValue usedVars v
+               f e = g e >> return e
+               ....
+           ....
+      In an equation for ‘ans’:
+          ans
+            = do usedVars <- newSupply fixer
+                 flip mapM_ (combineArgs fn as) $ \ (ap, Var v _) -> ...
+                 fn' <- supplyValue usedFuncs fn
+                 ....
+    |
+177 |         (nl,_) <- whiz (\_ -> id) h' f whizState (as :-> body)
+    |                   ^^^^
+
+src/Grin/DeadCode.hs:181:83: error:
+    • Could not deduce (MonadFail m) arising from a use of ‘whizExps’
+      from the context: MonadStats m
+        bound by the type signature for:
+                   removeDeadArgs :: forall (m :: * -> *).
+                                     MonadStats m =>
+                                     Bool
+                                     -> Set.Set Atom
+                                     -> Set.Set Atom
+                                     -> Set.Set Var
+                                     -> Set.Set (Atom, Int)
+                                     -> (Atom, Lam)
+                                     -> WhizState
+                                     -> m (WhizState, (Atom, Lam))
+        at src/Grin/DeadCode.hs:180:1-166
+      Possible fix:
+        add (MonadFail m) to the context of
+          the type signature for:
+            removeDeadArgs :: forall (m :: * -> *).
+                              MonadStats m =>
+                              Bool
+                              -> Set.Set Atom
+                              -> Set.Set Atom
+                              -> Set.Set Var
+                              -> Set.Set (Atom, Int)
+                              -> (Atom, Lam)
+                              -> WhizState
+                              -> m (WhizState, (Atom, Lam))
+    • In the first argument of ‘(>>=)’, namely ‘whizExps f (margs a l)’
+      In the expression:
+        whizExps f (margs a l) >>= \ (l, ws) -> return (ws, (a, l))
+      In an equation for ‘removeDeadArgs’:
+          removeDeadArgs
+            postInline
+            funSet
+            directFuncs
+            usedCafs
+            usedArgs
+            (a, l)
+            whizState
+            = whizExps f (margs a l) >>= \ (l, ws) -> return (ws, (a, l))
+            where
+                whizExps f l
+                  = whiz (\ _ x -> x) (\ (p, e) -> f e >>= \ e' -> ...) f whizState l
+                margs fn (as :-> e)
+                  | a `Set.member` directFuncs = ((removeArgs fn as) :-> e)
+                margs _ x = x
+                f (App fn as ty)
+                  = do as <- dff fn as
+                       ....
+                f (Return [NodeC fn as])
+                  | Just fn' <- tagToFunction fn
+                  = do as <- dff' fn' as
+                       ....
+                f (BaseOp (StoreNode False) [NodeC fn as])
+                  | Just fn' <- tagToFunction fn
+                  = do as <- dff' fn' as
+                       ....
+                f (BaseOp Overwrite [(Var v TyINode), _])
+                  | deadCaf v
+                  = do mtick $ toAtom "Optimize.dead-code.caf-update"
+                       ....
+                f (BaseOp Overwrite [p, NodeC fn as])
+                  | Just fn' <- tagToFunction fn
+                  = do as <- dff' fn' as
+                       ....
+                f lt@Let {expDefs = defs}
+                  = return $ updateLetProps lt {expDefs = defs'}
+                  where
+                      defs' = ...
+                f x = return x
+                dff' fn as | fn `member` directFuncs = return as
+                dff' fn as = dff'' fn as
+                ....
+    |
+181 | removeDeadArgs postInline funSet directFuncs usedCafs usedArgs (a,l) whizState =  whizExps f (margs a l) >>= \(l,ws) -> return (ws,(a,l)) where
+    |                                                                                   ^^^^^^^^
+[113 of 178] Compiling FrontEnd.Syn.Traverse ( src/FrontEnd/Syn/Traverse.hs, src/FrontEnd/Syn/Traverse.o ) [Source file changed]
+[114 of 178] Compiling FrontEnd.TypeSynonyms ( src/FrontEnd/TypeSynonyms.hs, src/FrontEnd/TypeSynonyms.o )
+
+src/FrontEnd/TypeSynonyms.hs:108:52: error:
+    Unexpected parallel statement in a list comprehension
+    Use ParallelListComp
+    |
+108 |                 st <- subst (Map.fromList [(a,s) | a <- args | s <- stack]) t
+    |                                                    ^^^^^^^^^^^^^^^^^^^^^^
+[119 of 178] Compiling FrontEnd.KindInfer ( drift_processed/FrontEnd/KindInfer.hs, drift_processed/FrontEnd/KindInfer.o )
+
+src/FrontEnd/KindInfer.hs:102:5: error:
+    ‘fail’ is not a (visible) method of class ‘Monad’
+
+src/FrontEnd/KindInfer.hs:171:40: error:
+    Empty 'do' block
+    Suggested fix: Perhaps you intended to use NondecreasingIndentation
+
+src/FrontEnd/KindInfer.hs:211:14: error:
+    Empty 'do' block
+    Suggested fix: Perhaps you intended to use NondecreasingIndentation
+
+src/FrontEnd/KindInfer.hs:219:5: error:
+    Ambiguous occurrence ‘getEnv’
+    It could refer to
+       either ‘Util.Std.getEnv’,
+              imported from ‘Util.Std’ at src/FrontEnd/KindInfer.hs:20:1-15
+              (and originally defined in ‘System.Environment’)
+           or ‘FrontEnd.KindInfer.getEnv’,
+              defined at src/FrontEnd/KindInfer.hs:148:1
+
+src/FrontEnd/KindInfer.hs:265:9: error:
+    Ambiguous occurrence ‘getEnv’
+    It could refer to
+       either ‘Util.Std.getEnv’,
+              imported from ‘Util.Std’ at src/FrontEnd/KindInfer.hs:20:1-15
+              (and originally defined in ‘System.Environment’)
+           or ‘FrontEnd.KindInfer.getEnv’,
+              defined at src/FrontEnd/KindInfer.hs:148:1
+
+src/FrontEnd/KindInfer.hs:368:5: error:
+    Ambiguous occurrence ‘getEnv’
+    It could refer to
+       either ‘Util.Std.getEnv’,
+              imported from ‘Util.Std’ at src/FrontEnd/KindInfer.hs:20:1-15
+              (and originally defined in ‘System.Environment’)
+           or ‘FrontEnd.KindInfer.getEnv’,
+              defined at src/FrontEnd/KindInfer.hs:148:1
+
+src/FrontEnd/KindInfer.hs:391:7: error:
+    Illegal `..' in record pattern
+    Suggested fix: Perhaps you intended to use RecordWildCards
+
+src/FrontEnd/KindInfer.hs:406:7: error:
+    Illegal `..' in record pattern
+    Suggested fix: Perhaps you intended to use RecordWildCards
+
+src/FrontEnd/KindInfer.hs:409:7: error:
+    Illegal `..' in record pattern
+    Suggested fix: Perhaps you intended to use RecordWildCards
+
+src/FrontEnd/KindInfer.hs:420:7: error:
+    Illegal `..' in record pattern
+    Suggested fix: Perhaps you intended to use RecordWildCards
+
+src/FrontEnd/KindInfer.hs:421:7: error:
+    Illegal `..' in record pattern
+    Suggested fix: Perhaps you intended to use RecordWildCards
+
+src/FrontEnd/KindInfer.hs:432:26: error:
+    Illegal `..' in record pattern
+    Suggested fix: Perhaps you intended to use RecordWildCards
+
+src/FrontEnd/KindInfer.hs:437:9: error:
+    Ambiguous occurrence ‘getEnv’
+    It could refer to
+       either ‘Util.Std.getEnv’,
+              imported from ‘Util.Std’ at src/FrontEnd/KindInfer.hs:20:1-15
+              (and originally defined in ‘System.Environment’)
+           or ‘FrontEnd.KindInfer.getEnv’,
+              defined at src/FrontEnd/KindInfer.hs:148:1
+
+src/FrontEnd/KindInfer.hs:439:14: error:
+    Illegal view pattern:  fromHsTyVar -> Just classArg
+    Suggested fix: Perhaps you intended to use ViewPatterns
+
+src/FrontEnd/KindInfer.hs:454:19: error:
+    Illegal `..' in record pattern
+    Suggested fix: Perhaps you intended to use RecordWildCards
+
+src/FrontEnd/KindInfer.hs:458:9: error:
+    Ambiguous occurrence ‘getEnv’
+    It could refer to
+       either ‘Util.Std.getEnv’,
+              imported from ‘Util.Std’ at src/FrontEnd/KindInfer.hs:20:1-15
+              (and originally defined in ‘System.Environment’)
+           or ‘FrontEnd.KindInfer.getEnv’,
+              defined at src/FrontEnd/KindInfer.hs:148:1
+
+src/FrontEnd/KindInfer.hs:505:30: error:
+    Illegal `..' in record pattern
+    Suggested fix: Perhaps you intended to use RecordWildCards
+
+src/FrontEnd/KindInfer.hs:516:9: error:
+    Ambiguous occurrence ‘getEnv’
+    It could refer to
+       either ‘Util.Std.getEnv’,
+              imported from ‘Util.Std’ at src/FrontEnd/KindInfer.hs:20:1-15
+              (and originally defined in ‘System.Environment’)
+           or ‘FrontEnd.KindInfer.getEnv’,
+              defined at src/FrontEnd/KindInfer.hs:148:1
+
+src/FrontEnd/KindInfer.hs:592:47: error:
+    Ambiguous occurrence ‘getEnv’
+    It could refer to
+       either ‘Util.Std.getEnv’,
+              imported from ‘Util.Std’ at src/FrontEnd/KindInfer.hs:20:1-15
+              (and originally defined in ‘System.Environment’)
+           or ‘FrontEnd.KindInfer.getEnv’,
+              defined at src/FrontEnd/KindInfer.hs:148:1
+
+src/FrontEnd/KindInfer.hs:621:28: error:
+    Illegal view pattern:  f -> nt
+    Suggested fix: Perhaps you intended to use ViewPatterns
+
+src/FrontEnd/KindInfer.hs:624:28: error:
+    Illegal view pattern:  f -> nt
+    Suggested fix: Perhaps you intended to use ViewPatterns
+
+src/FrontEnd/KindInfer.hs:627:16: error:
+    Illegal view pattern:  f -> na
+    Suggested fix: Perhaps you intended to use ViewPatterns
+
+src/FrontEnd/KindInfer.hs:627:26: error:
+    Illegal view pattern:  f -> nb
+    Suggested fix: Perhaps you intended to use ViewPatterns
+[121 of 178] Compiling FrontEnd.Infix   ( src/FrontEnd/Infix.hs, src/FrontEnd/Infix.o )
+[122 of 178] Compiling FrontEnd.Desugar ( src/FrontEnd/Desugar.hs, src/FrontEnd/Desugar.o )
+
+src/FrontEnd/Desugar.hs:47:13: error:
+    Illegal `..' in record pattern
+    Suggested fix: Perhaps you intended to use RecordWildCards
+   |
+47 | desugarDecl HsPatBind { hsDeclPat = hsDeclPat@HsPVar {}, .. } = do
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src/FrontEnd/Desugar.hs:50:13: error:
+    Illegal `..' in record construction
+    Suggested fix: Perhaps you intended to use RecordWildCards
+   |
+50 |     return [HsPatBind { .. }]
+   |             ^^^^^^^^^^^^^^^^
+
+src/FrontEnd/Desugar.hs:52:13: error:
+    Illegal `..' in record pattern
+    Suggested fix: Perhaps you intended to use RecordWildCards
+   |
+52 | desugarDecl HsPatBind { .. } = do
+   |             ^^^^^^^^^^^^^^^^
+
+src/FrontEnd/Desugar.hs:59:28: error:
+    Illegal `..' in record construction
+    Suggested fix: Perhaps you intended to use RecordWildCards
+   |
+59 |     let newTopDeclForRhs = HsPatBind { hsDeclPat = HsPVar newRhsName, .. }
+   |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[145 of 178] Compiling E.Show           ( src/E/Show.hs, src/E/Show.o )
+
+src/E/Show.hs:50:14: error:
+    • No instance for (Applicative SEM)
+        arising from the 'deriving' clause of a data type declaration
+      Possible fix:
+        use a standalone 'deriving instance' declaration,
+          so you can specify the instance context yourself
+    • When deriving the instance for (Monad SEM)
+   |
+50 |     deriving(Monad,Functor)
+   |              ^^^^^
