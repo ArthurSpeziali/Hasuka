@@ -2,7 +2,11 @@ TXT/
 TUTORIAL/
 ASM/
 HASKELL/
+build/
+
 src/hs/jhc 
 src/hs/librts
+iso/hasuka.iso
+
 Session.vim
 GEMINI.md
