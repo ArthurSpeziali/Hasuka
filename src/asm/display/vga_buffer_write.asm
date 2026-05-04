@@ -9,17 +9,11 @@ VGA_BFF equ 0xB8000                       ; VGA Memmory Address
 VGA_COL equ 80                            ; 80 VGA Collums
 VGA_LINE equ 25                           ; 25 VGA Lines
 
-; BSS section 
-section .bss 
-  string resb 1
-
-section .text
 ; Extern Functions 
 extern vga_buffer_scroll_bellow
 
-
-global vga_buffer_write
 section .text
+global vga_buffer_write
 vga_buffer_write:
   PUSH rax                                ; Save the non-arguments registerns who i used
   PUSH rcx                     

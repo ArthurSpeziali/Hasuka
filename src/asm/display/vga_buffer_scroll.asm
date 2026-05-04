@@ -31,9 +31,24 @@ BITS 64
   POP rdx
   POP rax
 %endmacro
+%macro SerialByte 1
+  PUSH rax
+  PUSH rdx
+  PUSH rdi 
+  PUSH rsi 
 
-section .rodata
-  teste db "Hello w!"
+  MOVZX rdi, byte %1
+  CALL debug_hex
+  MOV rdi, rax 
+  MOV rsi, rdx 
+  CALL com_serial_write
+
+  POP rsi 
+  POP rdi
+  POP rdx
+  POP rax
+%endmacro
+
 
 ; CONSTANTS 
 VGA_BFF equ 0xB8000                                  ; Memory address to write in VGA Buffer
@@ -73,17 +88,16 @@ vga_buffer_scroll_bellow:
   CALL .move_line_loop                ; Calls to move up every line in the grid
   CALL .dump_line                     ; Clean the 26º line for avoid visual bugs and repeat infinitly this line for up
 
-  ; SerialDebug [vga_history_up]
-  ; SerialDebug [vga_entries_up]
   ; The history limit to the up-lines is 255, then, we need to delete de first register, and realocater the array
-  MOV rax, [vga_entries_up]
+  MOVZX rax, byte [vga_entries_up]
   CMP rax, VGA_HISTORY_LIMIT          ; Compare if the history is full 
   JGE .history_full
+
   JMP done
 
 .history_full:
   ; Decreases 1, then we have 254 entries
-  MOV rax, [vga_entries_up]
+  MOVZX rax, byte [vga_entries_up]
   DEC rax
 
   MOV byte [vga_entries_up], al
@@ -94,7 +108,7 @@ vga_buffer_scroll_bellow:
 
 .history_loop:
   CMP r8, VGA_HISTORY_LIMIT-1
-  JGE donediff
+  JGE done
 
   JMP .history_loop_continue
 
@@ -119,17 +133,21 @@ vga_buffer_scroll_bellow:
   
 .add_line:
   ; Now, we are defining the parameters of REP MOVSW
-  MOV rcx, VGA_COL                                         ; RCX is the colls counter
-  MOV rsi, rax                                             ; RSI is the source of copy (VGA Buffer)
-  MOV rdi, vga_history_up + (vga_entries_up * VGA_COL*2)   ; The result is the next value to write the line in the buffer
+  MOV rcx, VGA_COL                    ; RCX is the colls counter
 
-  REP MOVSW                          ; Repeat while RCX > 0, MOV RSI to RDI for single word
+  ; Heres, we uses temporaly RSI to add the entries value
+  ; Then multiply by 160 (Bytes in a col)
+  ; For end, add the offset to the history to find the correct value
+  MOVZX rsi, byte [vga_entries_up]                          
+  IMUL rsi, VGA_COL*2
+  LEA rdi, [vga_history_up + rsi]
 
-  ; Here, we increases +1 in the variable in the memory, using temporarly the RDI
-  MOV rdi, [vga_entries_up]          ; Uses RDI as temporary registern to save the value in vga_history_up 
-  INC rdi
+  ; Here, we REdefine RSI for the real value
+  MOV rsi, rax                        ; RSI is the source of copy (VGA Buffer)
+  REP MOVSW                           ; Repeat while RCX > 0, MOV RSI to RDI for single word
 
-  MOV byte [vga_entries_up], dil     ; Then, writes in the addres of the label. We use DIL because, the variable is 8-bits
+  ; Here, we increases +1 in the variable in the memory
+  INC byte [vga_entries_up]
 
   RET   
 
@@ -177,7 +195,7 @@ vga_buffer_scroll_above:
   CALL .dump_line                    ; Clean the 26 line for avoid visual bugs and repeat infinitly this line for up
 
   ; The history limit to the down-lines is 255, then, we need to delete de first register, and realocater the array
-  MOV rax, [vga_entries_down]
+  MOVZX rax, byte [vga_entries_down]
   CMP rax, VGA_HISTORY_LIMIT          ; Compare if the history is full 
   JGE .history_full
 
@@ -185,7 +203,7 @@ vga_buffer_scroll_above:
 
 .history_full:
   ; Decreases 1, then we have 254 entries
-  MOV rax, [vga_entries_down]
+  MOVZX rax, byte [vga_entries_down]
   DEC rax
 
   MOV byte [vga_entries_down], al
@@ -221,18 +239,21 @@ vga_buffer_scroll_above:
 
 .add_line:
   ; Now, we are defining the parameters of REP MOVSW
-  MOV rcx, VGA_COL                                             ; RCX is the colls counter
-  MOV rsi, rax                                                 ; RSI is the source of copy (VGA Buffer)
-  MOV rdi, vga_history_down + (vga_entries_down * VGA_COL*2)   ; The result is the next value to write the line in the buffer
+  MOV rcx, VGA_COL                    ; RCX is the colls counter
 
+  ; Heres, we uses temporaly RSI to add the entries value
+  ; Then multiply by 160 (Bytes in a col)
+  ; For end, add the offset to the history to find the correct value
+  MOVZX rsi, byte [vga_entries_down]                          
+  IMUL rsi, VGA_COL*2
+  LEA rdi, [vga_history_down + rsi]
+
+  ; Here, we REdefine RSI for the real value
+  MOV rsi, rax                        ; RSI is the source of copy (VGA Buffer)
   REP MOVSW                            ; Repeat while RCX > 0, MOV RSI to RDI for single word
 
-  SerialDebug [vga_entries_up]         ; GEMINI, Here vga_entries_up is 2
-  ; Here, we increases +1 in the variable in the memory, using temporarly the RDI
-  MOV rdi, [vga_entries_down]          ; Uses RDI as temporary registern to save the value in vga_history_up 
-  INC rdi
-  MOV byte [vga_entries_down], dil     ; Then, writes in the addres of the label. We use DIL because, the variable is 8-bits
-  SerialDebug [vga_entries_up]         ; GEMINI, here the vga_entries_up is 102
+  ; Here, we increases +1 in the variable in the memory
+  INC byte [vga_entries_down]
 
   ; Finally, for some reason that i don't know
   ; It's needed to replace the 25º Line for the 24º, because, if don't replace, the 24º it's ignored 
@@ -280,19 +301,23 @@ vga_buffer_scroll_up:
   PUSH rsi
   PUSH r8
 
-  MOV rax, [vga_entries_up]          ; Verify if has no line in history
+  MOVZX rax, byte [vga_entries_up]   ; Verify if has no line in history
   CMP rax, 0                           
   JE done                            ; Then, jump to end if not
 
   CALL vga_buffer_scroll_above       ; Scrolls up but withou restore the history. Blank line in the last line 
   CALL .pull_line                    ; Recovery in the history the 25th line, and write it
 
+  DEC byte [vga_entries_up]          ; Minus one entry in the history
   JMP done
 
 .pull_line:
   ; Now, we are defining the parameters of REP MOVSW
   MOV rcx, VGA_COL                                             ; RCX is the colls counter
-  MOV rsi, vga_history_up + ((vga_entries_up-1) * VGA_COL*2)   ; The result is the next value to read the line in the buffer
+  MOVZX r8, byte [vga_entries_up]
+  DEC r8
+  IMUL r8, r8, VGA_COL*2
+  LEA rsi, [vga_history_up + r8]
   MOV rdi, VGA_BFF                                             ; RDI is the destiny of copy (VGA Buffer) in 1th line
 
   REP MOVSW                          ; Repeat while RCX > 0, MOV RSI to RDI for single word
@@ -308,18 +333,20 @@ vga_buffer_scroll_down:
   PUSH rsi
   PUSH r8
 
-  MOV rax, [vga_entries_down]        ; Compare if has no entries in the history
+  
+  MOVZX rax, byte [vga_entries_down]        ; Compare if has no entries in the history
   CMP rax, 0 
   JE done                            ; If not, jump to end
 
   CALL vga_buffer_scroll_bellow      ; Scrolls up but withou restore the history. Blank line in the last line 
   CALL .pull_line                    ; Recovery in the history the 25th line, and write it
 
+  DEC byte [vga_entries_down]        ; Minus one entry in history
   JMP done
 
 .pull_line:
   ; RAX is the entries of history (How many lines)
-  MOV rax, [vga_entries_down]        
+  MOVZX rax, byte [vga_entries_down]        
   DEC rax                            ; Decreases because we are reading, not writing              
 
   MOV rcx, VGA_COL                   ; RCX is the colls counter
@@ -334,9 +361,6 @@ vga_buffer_scroll_down:
   REP MOVSW                          ; Repeat while RCX > 0, MOV RSI to RDI for single word
   RET
 
-
-donediff:
-  JMP done
 
 done:
   POP r8

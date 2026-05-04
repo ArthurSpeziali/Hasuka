@@ -13,10 +13,8 @@ export fn kernel_main() noreturn {
     arc.WELCOME_STR.ptr,
     arc.WELCOME_STR.len
   );
- 
-  stdout.scroll_above();
-  // stdout.scroll_bellow();
 
+  // Suspend the kernel
   kernel_wait();
 }
 
