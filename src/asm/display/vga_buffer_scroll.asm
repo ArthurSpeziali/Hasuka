@@ -332,7 +332,6 @@ vga_buffer_scroll_down:
   PUSH rdi 
   PUSH rsi
   PUSH r8
-
   
   MOVZX rax, byte [vga_entries_down]        ; Compare if has no entries in the history
   CMP rax, 0 
