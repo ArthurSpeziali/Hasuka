@@ -20,3 +20,5 @@ section .data
   vga_entries_up db 0                   ; 1 Byte = 256 numbers
   ; align 8
   vga_entries_down db 0
+
+

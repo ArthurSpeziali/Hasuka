@@ -58,9 +58,6 @@ global _start                                  ; Function Main defined in linker
 extern kernel_main                             ; The kernel in Assembly (To be linked)
 
 _start: 
-    ; EBX = Pointer to Multiboot Struct.
-    ; EDI = In the future, will be expanded to RDI (Fist argurment in ABI)
-    MOV edi, ebx
     MOV esp, boot_stack_top                    ; Mov the SP to the end of reserved region
 
     ; Define the EFlags = RFlags + expanded (32 flags)
@@ -129,11 +126,11 @@ _start:
     OR eax, 0b11 
     MOV [pml4], eax
     
-    ; The kernel will live in exact haslf of PML4, where is 256 index.
-    ; The CPU reads in 64 bit. Then, 8 bytes offset (256*8)
+    ; The kernel will live in the last entry of PML4 (index 511),
+    ; representing the top 512GB of address space (Higher Half).
     MOV eax, pdpt 
     OR eax, 0b11 
-    MOV [pml4 + 256*8], eax
+    MOV [pml4 + 511*8], eax
 
 
 
