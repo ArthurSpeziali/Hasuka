@@ -19,7 +19,7 @@ geniso:
 	grub-mkrescue -o $(ISO) iso
 
 mkdir:
-	mkdir -p build/asm build/zig
+	mkdir -p build/asm build/zig/handler
   
 check: clean mkdir $(ASM_OBJ)
 
@@ -33,3 +33,4 @@ copy:
 debug:
 	@echo "$(ZIG_SRC) \n$(ZIG_OBJ)\n"
 	@echo "$(ASM_SRC) \n$(ASM_OBJ)"
+	@echo "\n\n$(ALL_OBJ)"

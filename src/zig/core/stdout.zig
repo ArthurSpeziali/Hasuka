@@ -12,37 +12,37 @@ extern fn com_serial_write(str_ptr: [*]const u8, str_len: usize) void;          
 
 
 // Write function
-pub export fn write(str_ptr: [*]const u8, str_len: usize) void {
+pub fn write(string: []const u8) void {
   if (arc.isCOM_OUTPUT) {
-    com_serial_write(str_ptr, str_len);
+    com_serial_write(string.ptr, string.len);
   }
   else {
-    vga_buffer_write(str_ptr, str_len);
+    vga_buffer_write(string.ptr, string.len);
   }
 }
 
 // Serial function
-pub export fn serial(str_ptr: [*]const u8, str_len: usize) void {
-  com_serial_write(str_ptr, str_len);
+pub fn serial(string: []const u8) void {
+  com_serial_write(string.ptr, string.len);
 }
 
 // Scroll Bellow function
-pub export fn scroll_bellow() void {
+pub fn scroll_bellow() void {
   vga_buffer_scroll_bellow();
 }
 
 // Scroll Above function
-pub export fn scroll_above() void {
+pub fn scroll_above() void {
   vga_buffer_scroll_above();
 }
 
 // Scroll Up function
-pub export fn scroll_up() void {
+pub fn scroll_up() void {
   vga_buffer_scroll_up();
 }
 
 // Scroll Down function
-pub export fn scroll_down() void {
+pub fn scroll_down() void {
   vga_buffer_scroll_down();
 }
 

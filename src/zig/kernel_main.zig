@@ -1,19 +1,17 @@
 // Firmlevel kernel in Zig
 
 // Imports
-const arc = @import("archive.zig");
+const arc = @import("core/archive.zig");
 const stdout = @import("core/stdout.zig");
 const debug = @import("core/debug.zig");
-
 
 // Kernel main
 export fn kernel_main() noreturn {
   // Welcome print
   stdout.write(
-    arc.WELCOME_STR.ptr,
-    arc.WELCOME_STR.len
+    arc.WELCOME_STR
   );
-
+  
   // Suspend the kernel
   kernel_wait();
 }

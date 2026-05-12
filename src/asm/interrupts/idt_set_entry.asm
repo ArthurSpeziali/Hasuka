@@ -87,3 +87,4 @@ idt_load:
   ; We have to pass a 10 byte value, not the memory address
   LIDT [idt_ptr]                               ; Finnaly, load the IDT with the register IDTR. So, return
   RET
+

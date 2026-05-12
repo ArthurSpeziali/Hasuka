@@ -1,3 +1,7 @@
+; Utils for using the COM port (OUT and IN)
+; no input no output
+; -> com_serial_init & com_serial_wait
+
 BITS 64
 
 ; Constants
