@@ -12,7 +12,7 @@ const AssemblyString = extern struct {
 
 // Functions 
 // Debug hex function
-pub fn debug(hex_int: usize) []const u8 {
+pub fn hex(hex_int: usize) []const u8 {
   const string: AssemblyString = debug_hex(hex_int); 
 
   return string.ptr[0..string.len];

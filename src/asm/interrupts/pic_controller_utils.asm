@@ -23,6 +23,28 @@ ICW_4         equ 0x1                          ; Flags config. In this case, we 
 ; Finnaly, this constant indicates the end of interrupt (EOI)
 PIC_EOI equ 0x20
 
+; Macros Here
+%macro Debug 1
+  extern debug_hex
+  extern com_serial_write
+  PUSH rax
+  PUSH rdx
+  PUSH rdi 
+  PUSH rsi
+
+  MOV rdi, %1 
+  CALL debug_hex
+  MOV rdi, rax
+  MOV rsi, rdx
+  CALL com_serial_write
+
+  POP rsi 
+  POP rdi 
+  POP rdx
+  POP rax 
+%endmacro
+
+
 
 section .text
 ; Disable the classic PIC 8086 chip
@@ -63,13 +85,14 @@ pic_controller_disable:
 global pic_controller_eoi 
 pic_controller_eoi: 
   MOV al, PIC_EOI                              ; Move to AL the EOI code (To use in Slave/Master pin)
-
   CMP rdi, 8                                   ; If vector is lesser than 8 
   JL .master_only                              ; Only calls Master PIN
   JGE .slave_master                            ; If greater, then calls first the Slave, then the Master
+
 .master_only: 
   OUT MASTER_COMMAND, al 
   RET                                          ; In the final, return in the two ways
+
 .slave_master: 
   OUT SLAVE_COMMAND, al 
   JMP .master_only

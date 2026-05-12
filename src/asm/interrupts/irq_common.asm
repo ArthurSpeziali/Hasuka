@@ -84,7 +84,7 @@ irq_common:
   ; Load the vector number from the stack into RDI for the handler
   ; The stack layout after pushes: [r15, r14, ..., rax, vector, error_code]
   ; There are 15 registers pushed. Vector is at [rsp + 15*8]
-  MOV rdi, [rsp + 120]
+  MOV rdi, [rsp + 15*8]
   CALL irq_handler 
 
   POP r15 
@@ -107,14 +107,16 @@ irq_common:
   ; We need to advise the aPIC that the interruption is over 
   ; So, we pick the vector number in the stack to RDI 
   ; And call pic_controller_eoi passing in RDI the ORIGINAL vector number 
-  ; The vector number is currently at [rsp] because we haven't popped it yet
+  ; The vector number is currently at [RSP] because we haven't popped it yet
   PUSH rdi                                    ; Save RDI before using it for EOI
   MOV rdi, [rsp + 8]                          ; Vector number (was pushed last in macro)
   SUB rdi, 32                                 ; Get original IRQ (0-15)
-  CALL pic_controller_eoi                     ; Signal EOI
-  POP rdi                                     ; Restore RDI
 
+  CALL pic_controller_eoi                     ; Signal EOI
+
+  POP rdi                                     ; Restore RDI
   ; Finally, discard vector and dummy error code
   ADD rsp, 16
 
   IRETQ                                       ; Back to to CPU (Restoring all CPU Core Registers)
+

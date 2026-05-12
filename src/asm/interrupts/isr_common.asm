@@ -87,7 +87,7 @@ isr_common:
   ; Load the vector number from the stack into RDI for the handler
   ; The stack layout after pushes: [r15, r14, ..., rax, vector, error_code]
   ; There are 15 registers pushed. Vector is at [rsp + 15*8]
-  MOV rdi, [rsp + 120]
+  MOV rdi, [rsp + 15*8]
   CALL isr_handler 
 
   POP r15 

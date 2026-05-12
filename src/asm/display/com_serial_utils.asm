@@ -71,9 +71,9 @@ com_serial_wait:
 .loop:
   IN al, dx                    ; Reads the value in DX port, and register in AL
   ; TEST is a AND operator, but dont store the result, just update the flag ZF if the result is 0
-  TEST al, 0x20                ; Use a mask. 0x20 = 6º bit enable. Then, verify if 6 ] bit is enable 
-  JZ .loop                     ; If the 6º bit is 0, the buffer is busy, then repeat the loop until it going void 
-  JNZ done
+  TEST al, 0x20                ; Use a mask. 0x20 = 6º bit enable. Then, verify if 6 bit is enable 
+  JE .loop                     ; If the 6º bit is 0, the buffer is busy, then repeat the loop until it going void 
+  JNE done
 
 done:
   POP rax                      ; Restore RDX and RAX 

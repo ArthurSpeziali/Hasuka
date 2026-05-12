@@ -5,6 +5,8 @@ const arc = @import("core/archive.zig");
 const stdout = @import("core/stdout.zig");
 const debug = @import("core/debug.zig");
 
+const kbd = @import("drivers/keyboard.zig");
+
 // Extern Functions 
 extern fn interrupts_init() void;
 
@@ -61,12 +63,12 @@ export fn isr_handler(vector: usize) void {
 }
 
 export fn irq_handler(vector: usize) void {
-  // stdout.serial(
-  //   debug.debug(vector)
-  // );
   switch (vector) {
-    // 33 => stdout.serial("Keyboard?"),
-    else => {}//stdout.serial("Unknown Device?")
+    33 => {
+      _ = kbd.get_code();
+      stdout.serial("Keyboard?");
+    },
+    else => {}
   }
 }
 
