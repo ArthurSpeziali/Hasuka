@@ -1,6 +1,7 @@
 // Debug functions
 
 extern fn debug_hex(hex_int: usize) AssemblyString;
+extern fn debug_wait() void;
 
 // Extern Structs
 const AssemblyString = extern struct {
@@ -8,11 +9,18 @@ const AssemblyString = extern struct {
   len: usize
 };
 
-// Functions 
 
+// Functions 
 // Debug hex function
-pub export fn debug(hex_int: usize) AssemblyString {
-  return debug_hex(hex_int);
+pub fn debug(hex_int: usize) []const u8 {
+  const string: AssemblyString = debug_hex(hex_int); 
+
+  return string.ptr[0..string.len];
 }
 
-
+// Wait kernel function
+pub fn kernel_wait() noreturn {
+  while (true) {
+    debug_wait();
+  }
+}

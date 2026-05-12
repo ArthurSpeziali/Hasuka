@@ -12,15 +12,15 @@ extern isr_handler
 ; ISR sometimes, send an 64-bit error code 
 ; Then we have to push a error code who that not have error code
 %macro IsrNoCode 1 
-  global isr_code_%1
-  isr_code_%1:
+  global isr_stub_%1
+  isr_stub_%1:
     PUSH qword 0                               ; For defaultism, we put 0 for don't have own code
     PUSH qword %1                              ; Here, it is too 64-bit value, in this case, own vector number
     JMP isr_common                             ; Jump to resolver
 %endmacro
 %macro IsrWithCode 1 
-  global isr_code_%1
-  isr_code_%1:
+  global isr_stub_%1
+  isr_stub_%1:
     PUSH qword %1                              ; In this case, it have your code error, we dont push the 0
     JMP isr_common
 %endmacro
@@ -84,14 +84,11 @@ isr_common:
   PUSH r14
   PUSH r15 
   
-  ; We have in RDI the Vector number, so we pass to the isr_handler 
+  ; Load the vector number from the stack into RDI for the handler
+  ; The stack layout after pushes: [r15, r14, ..., rax, vector, error_code]
+  ; There are 15 registers pushed. Vector is at [rsp + 15*8]
+  MOV rdi, [rsp + 120]
   CALL isr_handler 
-
-  ; Now, we delete from the stack the 2 numbers were we have push'em (Error code + Vector Number) in the macros 
-  ; We uses temporaly RAX to remove. This is similar to: ADD 16, rsp  
-  ; The stack growth to down. If it begins at 0x1008, we PUSH four bytes, then it will be in 0x1004. And 2 qword POP's, we will be in 0x1014
-  ; It will be subtract, so for real subtraction, we add.
-  ADD rsp, 16                                  ; SImilar to 2x'POP rax'
 
   POP r15 
   POP r14 
@@ -108,5 +105,12 @@ isr_common:
   POP rcx
   POP rbx
   POP RAX
+
+  ; Now, we delete from the stack the 2 numbers were we have push'em (Error code + Vector Number) in the macros 
+  ; We uses temporaly RAX to remove. This is similar to: ADD 16, rsp  
+  ; The stack growth to down. If it begins at 0x1008, we PUSH four bytes, then it will be in 0x1004. And 2 qword POP's, we will be in 0x1014
+  ; It will be subtract, so for real subtraction, we add.
+  ADD rsp, 16                                  ; SImilar to 2x'POP rax'
+
 
   IRETQ                                       ; IRET (Or IRETQ for in Long Mode), POP the CPU core registers (CS, RFLAGS, RIP...) automaticly

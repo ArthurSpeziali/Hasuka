@@ -48,10 +48,12 @@ pic_controller_disable:
   OUT MASTER_DATA, al                          ; It's show to aPIC that we use now the PIC 8086
   OUT SLAVE_DATA, al
 
-  MOV al, 0xFF                                 ; This is a mask (Full bits), that catch all IRQs
+  MOV al, 0x00                                 ; This is a mask (0 = enabled), enabling all IRQs
   OUT MASTER_DATA, al 
   OUT SLAVE_DATA, al 
 
+
+  POP rax
   RET                                          ; Then return
 
 
