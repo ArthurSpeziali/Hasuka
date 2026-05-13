@@ -1,4 +1,4 @@
-; Output write in VGA Buffer 
+; Output print in VGA Buffer 
 ; Receives *RDI as String (String to print), RSI as Int (Length of String)
 ; *str RDI (str_ptr), uint64 RSI (str_len)
 
@@ -13,14 +13,18 @@ VGA_LINE equ 25                           ; 25 VGA Lines
 extern vga_buffer_scroll_bellow
 
 section .text
-global vga_buffer_write
-vga_buffer_write:
+global vga_buffer_print
+vga_buffer_print:
   PUSH rax                                ; Save the non-arguments registerns who i used
   PUSH rcx                     
   PUSH r8 
   PUSH r9
   PUSH r10 
   PUSH r11
+
+  ; Lets impelement a feature 
+  ; If RSI == 0, then we just stop when 0 byte appears (C Style)
+  ; So, we overflow RSI (That's the len) to the max number in 64-bit 
 
   XOR rcx, rcx                            ; Zero RCX = Geral Counter
   XOR r11, r11                            ; Zero R11 = Char counter

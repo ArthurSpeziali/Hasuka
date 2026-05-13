@@ -50,7 +50,7 @@ global idt_set_entry
 idt_set_entry:
   PUSH rax
 
-  ; We need to write in the correct memorry the table, so: 
+  ; We need to print in the correct memorry the table, so: 
   ; idt_entries + (vector * 16), Where vector is the number of irq (RDI) 
   ; And 16 the number of bytes of the table (InterruptorTable)
   MOV rax, rdi 

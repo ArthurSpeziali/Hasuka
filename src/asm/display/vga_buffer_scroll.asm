@@ -9,7 +9,7 @@ BITS 64
 
   MOV rdi, %1 
   MOV rsi, %2 
-  CALL com_serial_write
+  CALL com_serial_print
 
   POP rsi 
   POP rdi
@@ -24,7 +24,7 @@ BITS 64
   CALL debug_hex
   MOV rdi, rax 
   MOV rsi, rdx 
-  CALL com_serial_write
+  CALL com_serial_print
 
   POP rsi 
   POP rdi
@@ -41,7 +41,7 @@ BITS 64
   CALL debug_hex
   MOV rdi, rax 
   MOV rsi, rdx 
-  CALL com_serial_write
+  CALL com_serial_print
 
   POP rsi 
   POP rdi
@@ -51,7 +51,7 @@ BITS 64
 
 
 ; CONSTANTS 
-VGA_BFF equ 0xB8000                                  ; Memory address to write in VGA Buffer
+VGA_BFF equ 0xB8000                                  ; Memory address to print in VGA Buffer
 VGA_BFF_FINAL equ VGA_BFF + (VGA_LINE-1)* VGA_COL*2  ; Result is the total bytes to the begin of 25º Line
 VGA_COL equ 80                                       ; 80 Colluns and 25 lines
 VGA_LINE equ 25                 
@@ -60,7 +60,7 @@ VGA_HISTORY_LIMIT equ 255
 
 ; Extern functions
 extern debug_hex
-extern com_serial_write
+extern com_serial_print
 
 ; Extern Variables 
 extern vga_history_up
@@ -306,7 +306,7 @@ vga_buffer_scroll_up:
   JE done                            ; Then, jump to end if not
 
   CALL vga_buffer_scroll_above       ; Scrolls up but withou restore the history. Blank line in the last line 
-  CALL .pull_line                    ; Recovery in the history the 25th line, and write it
+  CALL .pull_line                    ; Recovery in the history the 25th line, and print it
 
   DEC byte [vga_entries_up]          ; Minus one entry in the history
   JMP done
@@ -338,7 +338,7 @@ vga_buffer_scroll_down:
   JE done                            ; If not, jump to end
 
   CALL vga_buffer_scroll_bellow      ; Scrolls up but withou restore the history. Blank line in the last line 
-  CALL .pull_line                    ; Recovery in the history the 25th line, and write it
+  CALL .pull_line                    ; Recovery in the history the 25th line, and print it
 
   DEC byte [vga_entries_down]        ; Minus one entry in history
   JMP done

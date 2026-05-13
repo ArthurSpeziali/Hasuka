@@ -26,7 +26,7 @@ PIC_EOI equ 0x20
 ; Macros Here
 %macro Debug 1
   extern debug_hex
-  extern com_serial_write
+  extern com_serial_print
   PUSH rax
   PUSH rdx
   PUSH rdi 
@@ -36,7 +36,7 @@ PIC_EOI equ 0x20
   CALL debug_hex
   MOV rdi, rax
   MOV rsi, rdx
-  CALL com_serial_write
+  CALL com_serial_print
 
   POP rsi 
   POP rdi 

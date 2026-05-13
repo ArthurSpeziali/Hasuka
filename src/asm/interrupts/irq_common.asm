@@ -20,7 +20,7 @@ extern pic_controller_eoi
 
 %macro Debug 1
   extern debug_hex
-  extern com_serial_write
+  extern com_serial_print
   PUSH rax
   PUSH rdx
   PUSH rdi 
@@ -30,7 +30,7 @@ extern pic_controller_eoi
   CALL debug_hex
   MOV rdi, rax
   MOV rsi, rdx
-  CALL com_serial_write
+  CALL com_serial_print
 
   POP rsi 
   POP rdi 

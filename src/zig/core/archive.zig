@@ -1,5 +1,5 @@
 
-extern fn com_serial_write(str_ptr: [*]const u8, str_len: usize) void;
+extern fn com_serial_print(str_ptr: [*]const u8, str_len: usize) void;
 
 
 // Default Boolean Constants

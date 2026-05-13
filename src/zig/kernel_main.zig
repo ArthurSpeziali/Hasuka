@@ -14,7 +14,7 @@ extern fn interrupts_init() void;
 // Kernel main
 export fn kernel_main() noreturn {
   // Welcome print
-  stdout.write(
+  stdout.print(
     arc.WELCOME_STR
   );
   
@@ -65,7 +65,7 @@ export fn isr_handler(vector: usize) void {
 export fn irq_handler(vector: usize) void {
   switch (vector) {
     33 => {
-      _ = kbd.get_code();
+      // _ = kbd.get_code();
       stdout.serial("Keyboard?");
     },
     else => {}
