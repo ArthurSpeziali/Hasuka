@@ -13,13 +13,13 @@ extern fn interrupts_init() void;
 
 // Kernel main
 export fn kernel_main() noreturn {
+  // Activate the interrupts 
+  interrupts_init();
+
   // Welcome print
   stdout.print(
     arc.WELCOME_STR
   );
-  
-  // Activate the interrupts 
-  interrupts_init();
 
   // Suspend the kernel
   debug.kernel_wait();

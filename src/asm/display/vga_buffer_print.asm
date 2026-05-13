@@ -1,6 +1,6 @@
 ; Output print in VGA Buffer 
 ; Receives *RDI as String (String to print), RSI as Int (Length of String)
-; *str RDI (str_ptr), uint64 RSI (str_len)
+; *str RDI (str_ptr), uint64 RSI-16 (str_len)
 
 BITS 64
 
@@ -12,20 +12,60 @@ VGA_LINE equ 25                           ; 25 VGA Lines
 ; Extern Functions 
 extern vga_buffer_scroll_bellow
 
+
+; Macros Here 
+%macro DebugAny 1 
+  PUSH rax 
+  MOVZX rax, %1 
+  Debug rax 
+  POP rax
+%endmacro 
+%macro Debug 1
+  extern debug_hex
+  extern com_serial_print
+  PUSH rax
+  PUSH rdx
+  PUSH rdi 
+  PUSH rsi
+
+  MOV rdi, %1 
+  CALL debug_hex
+  MOV rdi, rax
+  MOV rsi, rdx
+  CALL com_serial_print
+
+  POP rsi 
+  POP rdi 
+  POP rdx
+  POP rax 
+%endmacro
+
+
+
 section .text
+; We use here, the 16-bit version of RSI (SI)
+; Because security reasons (If the users pass 0 has length in an non C-string, it don't crash)
 global vga_buffer_print
 vga_buffer_print:
-  PUSH rax                                ; Save the non-arguments registerns who i used
   PUSH rcx                     
   PUSH r8 
   PUSH r9
   PUSH r10 
   PUSH r11
 
-  ; Lets impelement a feature 
-  ; If RSI == 0, then we just stop when 0 byte appears (C Style)
-  ; So, we overflow RSI (That's the len) to the max number in 64-bit 
-
+  ; Lets impelement a feature in string length (SI)
+  ; If SI == 0, then we just stop when 0 byte appears (C Style)
+  ; So, we overflow SI to the max number in 64-bit 
+  ; Here, as SI is a 16-bit reg, we must use CX (Also 16-bit) from RCX
+  ; XOR cx, cx                             ; Using RCX as temporally register, and zero it
+  ; DEC cx                                 ; So, 0 - 1 = 184..... (Many Digits, it overflow!)
+  MOV cx, 0xFF
+  
+  ; Then, we use CMOVx to condicional move (Like Jx, but does not jump)
+  ; If SI == 0, then MOV si, cx... (After, RCX is cleaned, because it is temporally)
+  CMP si, 0 
+  CMOVE si, cx
+ 
   XOR rcx, rcx                            ; Zero RCX = Geral Counter
   XOR r11, r11                            ; Zero R11 = Char counter
   XOR r8, r8                              ; Zero R8 = Offset
@@ -33,7 +73,7 @@ vga_buffer_print:
   XOR r10, r10                            ; Zero R10 = Line Cursor
 
   ; The magic is here
-  CALL loop_str                           ; Parser each char, put in your identation, intepolating breakpoints, and scrolling the screen
+  CALL loop_str                           ; Parser each char, put in your identation, intepolating breakpoints, scrolling the screen
   
   ; Finally, scrolls 1 time the screen to show the 26th line, normally, it's hidden
   ; But only if it reached in the final
@@ -53,6 +93,7 @@ loop_str:
   ; Jumps to interpolate the string, to find breakpoints, like '\n'
   CALL inter_str                         
 
+
   ; Add the address, plus 2 bytes-cells of RCX, plus the offset
   SHL r8, 1                               ; Multiplies R8 by 2. Because, is not allowed to do that in []
   MOV byte [VGA_BFF + 2*rcx+r8],     al   ; MOV to the address 2-bytes-cells (word). The fist is the character (AL)
@@ -67,8 +108,9 @@ loop_str:
   CALL need_reset
 
   ; Inspect if the string is in the end, if it, then stop
-  CMP r11, rsi                            ; Checks if RCX == String Length. String limit
-  JL loop_str                             ; If less, repeat the loop
+  ; In this case, R11W is the 16-bit version of R11 (W for Word)
+  CMP r11w, si                            ; Checks if R11W == String Length. String limit
+  JB loop_str                             ; If bellow (Unsigned operation), continues the loop
   RET                                     ; Else, return to main function
 
 need_reset:
@@ -96,7 +138,19 @@ reset_col:
 inter_str:
   CMP al, 0xA                             ; 0xA = 10 = \n -> Newline
   JE newline_offset                       ; If equal, jump to offset
+
+  CMP al, 0x0                             ; 0x0 = 0 = \0 -> End of String
+  JE .double_return                       ; If equal, return to main function 
+
   RET                                     ; Else, continue the parser
+.double_return: 
+  ; We want to return 2 times, so 'RET RET' does not work
+  ; When we use CALL, the RIP is save in the Stack (Who is controlled by RSP)
+  ; So, we can just discard that last CALL (Entry)
+  ; Using 'POP register' or adding 8 in RSP (That's whats we do)
+  ADD rsp, 8                              ; Discard last entry and return 
+  RET
+
 
 newline_offset:
   INC r11                                 ; Jumps to the next char, replacing the '\n'
@@ -123,6 +177,7 @@ newline_offset:
   SUB r8, r9                              ; Subtract the offset to the cursor
   RET
 .return: 
+  Debug 0x14
   RET
 
 need_scroll:
@@ -140,6 +195,5 @@ done:
   POP r9 
   POP r8
   POP rcx                                 ; Restore the registers 
-  POP rax
 
   RET                                     ; Returns to the main kernel
