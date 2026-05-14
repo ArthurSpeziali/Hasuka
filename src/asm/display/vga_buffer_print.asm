@@ -139,6 +139,9 @@ inter_str:
   CMP al, 0xA                             ; 0xA = 10 = \n -> Newline
   JE newline_offset                       ; If equal, jump to offset
 
+  CMP al, 0x8                             ; 0x8 = 8 = \b -> Backspace
+  JE delete_char                          ; If equal, jump to delete
+
   CMP al, 0x0                             ; 0x0 = 0 = \0 -> End of String
   JE .double_return                       ; If equal, return to main function 
 
@@ -150,6 +153,27 @@ inter_str:
   ; Using 'POP register' or adding 8 in RSP (That's whats we do)
   ADD rsp, 8                              ; Discard last entry and return 
   RET
+
+
+delete_char:
+  INC r11                                 ; Jumps to the next char, replacing the '\n'
+  MOV al, [rdi + r11]                     ; Jumps to the next char (Ignoring the \n)
+
+  DEC rcx                                 ; So, backs 1 space in te memory, replacing the previous character 
+  RET
+.increase_reg:
+  CMP r10, VGA_LINE 
+  JGE .return 
+
+  ; If it jumps a line, then jumps the match zero-bits value (Jumps 25 spaces, then jumps 25 words (bytes * 2))
+  INC rcx                                 ; Add in RCX to continue in normal flow
+  ADD r8, VGA_COL - 1                     ; Adds to R8, VGA collums minus 1
+  SUB r8, r9                              ; Subtract the offset to the cursor
+  RET
+.return: 
+  RET
+  
+
 
 
 newline_offset:
@@ -177,7 +201,6 @@ newline_offset:
   SUB r8, r9                              ; Subtract the offset to the cursor
   RET
 .return: 
-  Debug 0x14
   RET
 
 need_scroll:

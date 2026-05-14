@@ -8,7 +8,7 @@ extern fn vga_buffer_scroll_bellow() void;
 extern fn vga_buffer_scroll_above() void;
 extern fn vga_buffer_scroll_up() void;
 extern fn vga_buffer_scroll_down() void;
-extern fn vga_buffer_clean() void;
+extern fn vga_buffer_clear() void;
 extern fn com_serial_print(str_ptr: [*]const u8, str_len: usize) void;              // COM Serial 
 
 
@@ -48,6 +48,6 @@ pub fn scroll_down() void {
 }
 
 // Clean Screen function 
-pub fn clean() void {
-  vga_buffer_clean();
+pub fn clear() void {
+  vga_buffer_clear();
 }

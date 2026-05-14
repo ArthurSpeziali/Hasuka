@@ -16,6 +16,9 @@ export fn kernel_main() noreturn {
   // Activate the interrupts 
   interrupts_init();
 
+  // Clean the VGA Screen
+  stdout.clear();
+
   // Welcome print
   stdout.print(
     arc.WELCOME_STR
