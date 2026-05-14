@@ -7,7 +7,7 @@ BITS 64
 ; CONSTANTS
 VGA_BFF equ 0xB8000                       ; VGA Memmory Address
 VGA_COL equ 80                            ; 80 VGA Collums
-VGA_LINE equ 25                           ; 25 VGA Lines
+VGA_LINE equ 32                           ; 32 VGA Lines
 
 ; Extern Functions 
 extern vga_buffer_scroll_bellow
@@ -75,7 +75,7 @@ vga_buffer_print:
   ; The magic is here
   CALL loop_str                           ; Parser each char, put in your identation, intepolating breakpoints, scrolling the screen
   
-  ; Finally, scrolls 1 time the screen to show the 26th line, normally, it's hidden
+  ; Finally, scrolls 1 time the screen to show the 33th line, normally, it's hidden
   ; But only if it reached in the final
   CMP r10, VGA_LINE 
   JGE .scroll
@@ -125,7 +125,7 @@ reset_col:
   DEC r11                                ; Goes back one character
   MOV byte [rdi + r11], 94               ; Write in region of memory where the next label will execute to find the next char (AL)
 
-  CMP r10, VGA_LINE                       ; If the line cursor is bellow of 25 lines
+  CMP r10, VGA_LINE                       ; If the line cursor is bellow of 32 lines
   JGE .else
 
   INC r10                                 ; Increaes a line to Line Cursor (R10)
@@ -165,7 +165,7 @@ delete_char:
   CMP r10, VGA_LINE 
   JGE .return 
 
-  ; If it jumps a line, then jumps the match zero-bits value (Jumps 25 spaces, then jumps 25 words (bytes * 2))
+  ; If it jumps a line, then jumps the match zero-bits value (Jumps 32 spaces, then jumps 32 words (bytes * 2))
   INC rcx                                 ; Add in RCX to continue in normal flow
   ADD r8, VGA_COL - 1                     ; Adds to R8, VGA collums minus 1
   SUB r8, r9                              ; Subtract the offset to the cursor
@@ -178,7 +178,7 @@ delete_char:
 
 newline_offset:
   INC r11                                 ; Jumps to the next char, replacing the '\n'
-  CALL .increase_reg                      ; Just increases r8 and rcx if the line is bellow of 25 lines
+  CALL .increase_reg                      ; Just increases r8 and rcx if the line is bellow of 32 lines
 
   MOV al, [rdi + r11]                     ; Jumps to the next char (Ignoring the \n)
   
@@ -195,7 +195,7 @@ newline_offset:
   CMP r10, VGA_LINE 
   JGE .return 
 
-  ; If it jumps a line, then jumps the match zero-bits value (Jumps 25 spaces, then jumps 25 words (bytes * 2))
+  ; If it jumps a line, then jumps the match zero-bits value (Jumps 32 spaces, then jumps 32 words (bytes * 2))
   INC rcx                                 ; Add in RCX to continue in normal flow
   ADD r8, VGA_COL - 1                     ; Adds to R8, VGA collums minus 1
   SUB r8, r9                              ; Subtract the offset to the cursor

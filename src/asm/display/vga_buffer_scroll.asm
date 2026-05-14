@@ -52,9 +52,9 @@ BITS 64
 
 ; CONSTANTS 
 VGA_BFF equ 0xB8000                                  ; Memory address to print in VGA Buffer
-VGA_BFF_FINAL equ VGA_BFF + (VGA_LINE-1)* VGA_COL*2  ; Result is the total bytes to the begin of 25º Line
-VGA_COL equ 80                                       ; 80 Colluns and 25 lines
-VGA_LINE equ 25                 
+VGA_BFF_FINAL equ VGA_BFF + (VGA_LINE-1)* VGA_COL*2  ; Result is the total bytes to the begin of 32º Line
+VGA_COL equ 80                                       ; 80 Colluns and 32 lines
+VGA_LINE equ 32                 
 VGA_HISTORY_LIMIT equ 255
 
 
@@ -86,7 +86,7 @@ vga_buffer_scroll_bellow:
 
   CALL .add_line                      ; Calls to add the line in history
   CALL .move_line_loop                ; Calls to move up every line in the grid
-  CALL .dump_line                     ; Clean the 26º line for avoid visual bugs and repeat infinitly this line for up
+  CALL .dump_line                     ; Clean the 33º line for avoid visual bugs and repeat infinitly this line for up
 
   ; The history limit to the up-lines is 255, then, we need to delete de first register, and realocater the array
   MOVZX rax, byte [vga_entries_up]
@@ -168,7 +168,7 @@ vga_buffer_scroll_bellow:
   RET                                ; Else, return to main function
 
 .dump_line:
-  MOV rdi, VGA_BFF + VGA_LINE*VGA_COL*2  ; The result is 0xB8FAO. The begin of 26th line
+  MOV rdi, VGA_BFF + VGA_LINE*VGA_COL*2  ; The result is 0xB8FAO. The begin of 33th line
   MOV al, 0x0                            ; Zeros bytes
   MOV rcx, VGA_COL*2                     ; For all bytes in the line (80 chars * 2 bytes = 160 bytes)
 
@@ -185,14 +185,14 @@ vga_buffer_scroll_above:
   PUSH rsi
   PUSH r8
  
-  MOV rax, VGA_BFF_FINAL             ; Move RAX to the begin of 25º Line
+  MOV rax, VGA_BFF_FINAL             ; Move RAX to the begin of 32º Line
 
   XOR rcx, rcx                       ; Zeros RCX as collums counter
   XOR r8, r8                         ; Zeros R8 as lines counter
 
   CALL .add_line                     ; Calls to add the line in history
   CALL .move_line_loop               ; Calls to move up every line in the grid
-  CALL .dump_line                    ; Clean the 26 line for avoid visual bugs and repeat infinitly this line for up
+  CALL .dump_line                    ; Clean the 33 line for avoid visual bugs and repeat infinitly this line for up
 
   ; The history limit to the down-lines is 255, then, we need to delete de first register, and realocater the array
   MOVZX rax, byte [vga_entries_down]
@@ -256,7 +256,7 @@ vga_buffer_scroll_above:
   INC byte [vga_entries_down]
 
   ; Finally, for some reason that i don't know
-  ; It's needed to replace the 25º Line for the 24º, because, if don't replace, the 24º it's ignored 
+  ; It's needed to replace the 32º Line for the 31º, because, if don't replace, the 31º it's ignored 
   ; I've tried everthing, but only the lazy fix resolved it
   MOV rcx, VGA_COL                   
   MOV rsi, VGA_BFF_FINAL - VGA_COL*2 
@@ -267,7 +267,7 @@ vga_buffer_scroll_above:
 
 .move_line_loop:  
   STD                                ; Again, define the workflow of loop is inverted 
-  SUB rax, VGA_COL*2                 ; Starts at 24º Line (Last line is unuseless, beacause we saved to history)
+  SUB rax, VGA_COL*2                 ; Starts at 31º Line (Last line is unuseless, beacause we saved to history)
   MOV rcx, VGA_COL                   ; RCX a counter of Collums.
   
   MOV rsi, rax                       ; Source is RAX (Vga Buffer Final)
@@ -306,7 +306,7 @@ vga_buffer_scroll_up:
   JE done                            ; Then, jump to end if not
 
   CALL vga_buffer_scroll_above       ; Scrolls up but withou restore the history. Blank line in the last line 
-  CALL .pull_line                    ; Recovery in the history the 25th line, and print it
+  CALL .pull_line                    ; Recovery in the history the 32th line, and print it
 
   DEC byte [vga_entries_up]          ; Minus one entry in the history
   JMP done
@@ -338,7 +338,7 @@ vga_buffer_scroll_down:
   JE done                            ; If not, jump to end
 
   CALL vga_buffer_scroll_bellow      ; Scrolls up but withou restore the history. Blank line in the last line 
-  CALL .pull_line                    ; Recovery in the history the 25th line, and print it
+  CALL .pull_line                    ; Recovery in the history the 32th line, and print it
 
   DEC byte [vga_entries_down]        ; Minus one entry in history
   JMP done
@@ -355,7 +355,7 @@ vga_buffer_scroll_down:
   IMUL rsi, rax, VGA_COL*2
   ADD rsi, vga_history_down
 
-  MOV rdi, VGA_BFF_FINAL             ; RDI is the destiny of copy (VGA Buffer) in 25th line
+  MOV rdi, VGA_BFF_FINAL             ; RDI is the destiny of copy (VGA Buffer) in 32th line
 
   REP MOVSW                          ; Repeat while RCX > 0, MOV RSI to RDI for single word
   RET

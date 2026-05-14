@@ -197,10 +197,10 @@ long_mode:
   
   ; Uses the Multiboot 2 Struct back in EDI/RDI
   MOV edi, ebx
-  JMP vga_reg
+  JMP vga_disp
 
 
-vga_reg:
+vga_disp:
   ; Unlock CRTC fr full functionalities
   MOV dx, 0x3D4                              ; Port of VGA register select
   MOV al, 0x11                               ; Which VGA register we want
@@ -235,9 +235,13 @@ vga_reg:
   MOV dx, 0x3D5                              ; We want to put data in it
   MOV al, 0x20                               ; Bit flag to disable cursor
   OUT dx, al
+  
+  JMP kernel_call
 
+kernel_call:
   ; Finally, calling the kernel 
   CALL kernel_main
+  JMP .hang                                  ; Safe ethody to kernel crashing
 
 .hang:
     HLT                                        ; If kernels crash, it use HLT to stay in Low-mode CPU (quiet)
