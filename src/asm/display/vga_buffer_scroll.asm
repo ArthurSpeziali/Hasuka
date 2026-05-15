@@ -168,11 +168,11 @@ vga_buffer_scroll_bellow:
   RET                                ; Else, return to main function
 
 .dump_line:
-  MOV rdi, VGA_BFF + VGA_LINE*VGA_COL*2  ; The result is 0xB8FAO. The begin of 33th line
-  MOV al, 0x0                            ; Zeros bytes
-  MOV rcx, VGA_COL*2                     ; For all bytes in the line (80 chars * 2 bytes = 160 bytes)
+  MOV rdi, VGA_BFF + VGA_LINE*VGA_COL*2   ; The result is 0xB9400. The begin of 33th line
+  MOV ax, 0x0F00                          ; Zeros bytes with default color (But in Little Endiannes)
+  MOV rcx, VGA_COL                        ; For all words (2 bytes) in the line
 
-  REP STOSB 
+  REP STOSW
   RET 
 
 
@@ -284,11 +284,11 @@ vga_buffer_scroll_above:
   RET                                ; Else, return to main function
 
 .dump_line:
-  MOV rdi, VGA_BFF                       ; The begin of first line
-  MOV al, 0x0                            ; Zeros bytes
-  MOV rcx, VGA_COL*2                     ; For all bytes in the line (80 chars * 2 bytes = 160 bytes)
+  MOV rdi, VGA_BFF                   ; The begin of first line
+  MOV ax, 0x0F00                     ; Zeros bytes with default color (But in Little Endiannes)
+  MOV rcx, VGA_COL                   ; For all words (2 bytes) in the line
 
-  REP STOSB 
+  REP STOSW
   RET 
 
 

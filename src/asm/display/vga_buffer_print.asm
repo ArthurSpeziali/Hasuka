@@ -1,5 +1,5 @@
 ; Output print in VGA Buffer 
-; Receives *RDI as String (String to print), RSI as Int (Length of String)
+; Receives *RDI as String, RSI as String's length
 ; *str RDI (str_ptr), uint64 RSI-16 (str_len)
 
 BITS 64
@@ -111,26 +111,7 @@ vga_buffer_print:
   MOV r8d, dword [vga_saver_offset]       ; Restore R8 = Offset
   MOV r9d, dword [vga_saver_collum]       ; Restore R9 = Collum Cursor
   MOV r10d, dword [vga_saver_line]        ; Restore R10 = Line Cursor
-
-  ; Now, for and unknow bug, it's nescessary to decrease RCX and R9 if is not the first call of this function 
-  ; So, if RCX (Geral counter) is void (Is 0), so it's the first time that the function is called 
-  ; For resolve this problem, we just use 'CMOVG' to Condicional MOVe if it's Greater (X > Y)
-  ; First, we use temporally RAX to attribute the values (First rax, so RCX)
-  MOV rax, r9                             ; Move R9 to variable 
-  DEC rax                                 ; And decrease one (R9 - 1)
-  ; Now, it's must use first DEC, and after CMP. Because DEC writes (Overwrite) the RFlags
-  CMP rcx, 0                              ; So, compare if the RCX (Picked from the Data Struct form memory) is void
-  CMOVG r9, rax                           ; If not (The first time), then R9 = RAX (R9 = R9 - 1)
-
-  ; Same work, but with RCX 
-  ; If RCX would be first than R9, the CMP never will be satisfied, because would be MOV the comparated (RCX)
-  MOV rax, rcx                            ; RAX = RCX - 1
-  DEC rax 
-  ; First DEC, after CMP + Condicional Instructions. This is so Boring, also makes the code bigger
-  CMP rcx, 0                              ; If is not the first time, then RCX = RCX - 1
-  CMOVG rcx, rax
-  ; I Hate This bug......
-
+  
   RET
 .save_cursor:
   ; Now, save the registers to the memory
@@ -144,9 +125,7 @@ vga_buffer_print:
 .update_cursor: 
   PUSH rdi                                ; Save registers, for don't dirty them 
   PUSH rsi 
-
-  Debug r9 
-  Debug r10
+  
   ; We need to change the X, Y of Visual Cursor with VGA Controller
   MOV rdi, r9                             ; The first argument is the counter
   MOV rsi, r10 
@@ -203,14 +182,14 @@ reset_col:
   DEC r11                                ; Goes back one character
   MOV byte [rdi + r11], 94               ; Write in region of memory where the next label will execute to find the next char (AL)
 
-  CMP r10, VGA_LINE                       ; If the line cursor is bellow of 32 lines
+  CMP r10, VGA_LINE-1                    ; If the line cursor is bellow of 32 lines
   JGE .else
 
-  INC r10                                 ; Increaes a line to Line Cursor (R10)
+  INC r10                                ; Increaes a line to Line Cursor (R10)
   RET
 .else:
-  SUB rcx, VGA_COL                        ; Else, Backs to the begin of line
-  CALL vga_buffer_scroll_bellow             ; And Scrolls down
+  SUB rcx, VGA_COL                       ; Else, Backs to the begin of line
+  CALL vga_buffer_scroll_bellow          ; And Scrolls down
   RET
 
 inter_str:
@@ -259,7 +238,7 @@ newline_offset:
 
   JMP newline_offset_continue             ; If not, continues the pipeline
 .increase_reg:
-  CMP r10, VGA_LINE 
+  CMP r10, VGA_LINE-1
   JGE .return 
 
   ; If it jumps a line, then jumps the match zero-bits value (Jumps 32 spaces, then jumps 32 words (bytes * 2))
@@ -274,7 +253,7 @@ newline_offset:
   RET
 
 newline_offset_continue:
-  CMP r10, VGA_LINE 
+  CMP r10, VGA_LINE-1
   JGE .return
   
   INC r10                                 ; Increase in line cursor
@@ -283,7 +262,7 @@ newline_offset_continue:
   RET
 
 need_scroll:
-  CMP r10, VGA_LINE                       ; Compare the Line Cursor to the VGA Lines
+  CMP r10, VGA_LINE-1                     ; Compare the Line Cursor to the VGA Lines
   JGE .else                               ; If its equal or greater, scroll down
   RET                                     ; Else return
 .else:
