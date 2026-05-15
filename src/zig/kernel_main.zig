@@ -16,7 +16,10 @@ export fn kernel_main() noreturn {
   // Activate the interrupts 
   interrupts_init();
 
-  // Clean the VGA Screen
+  // Setting up the max VGA Lines to 32 
+  stdout.max_lines();
+
+  // Clear the VGA Screen
   stdout.clear();
 
   // Welcome print

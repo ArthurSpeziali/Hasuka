@@ -197,48 +197,12 @@ long_mode:
   
   ; Uses the Multiboot 2 Struct back in EDI/RDI
   MOV edi, ebx
-  JMP vga_disp
-
-
-vga_disp:
-  ; Unlock CRTC fr full functionalities
-  MOV dx, 0x3D4                              ; Port of VGA register select
-  MOV al, 0x11                               ; Which VGA register we want
-  OUT dx, al                                                                                        
-  MOV dx, 0x3D5                              ; Now, we define the data who we pass 
-  IN  al, dx                                 
-  AND al, 0x7F                               ; Mask to unlock full features of CRTC
-  OUT dx, al
-
-  ; We set to display 32 Lines (The max number). 
-  ; Setting the intern VGA register to Vertical size
-  MOV dx, 0x3D4                              ; Port of VGA register select
-  MOV al, 0x12                               ; Which VGA register we want
-  OUT dx, al    
-  MOV dx, 0x3D5                              ; Now, we define the data who pass 
-  MOV al, 255                                ; The max number of an byte, that's 32 lines in total
-  OUT dx, al                                 ; So, the calc is: (X-16)*16-1 
-
-  ; Setting the max number to Vga Collums (80 Collums)
-  ; Horizontal size
-  MOV dx, 0x3D4
-  MOV al, 0x01                               ; Horizontal size
-  OUT dx, al
-  MOV dx, 0x3D5
-  MOV al, 79                                 ; Just X-1 collums, when X is multiply of 8
-  OUT dx, al
-
-  ; The same work, but to disable the flicking static cursor
-  MOV dx, 0x3D4                              ; We want to use VGA register
-  MOV al, 0x0A                               ; Which register
-  OUT dx, al
-  MOV dx, 0x3D5                              ; We want to put data in it
-  MOV al, 0x20                               ; Bit flag to disable cursor
-  OUT dx, al
-  
   JMP kernel_call
 
 kernel_call:
+  ; Only clear RCX for good practices 
+  XOR rcx, rcx
+
   ; Finally, calling the kernel 
   CALL kernel_main
   JMP .hang                                  ; Safe ethody to kernel crashing

@@ -58,7 +58,10 @@ vga_buffer_clear:
 clear_vgabuffer: 
   ; Now, we use STOSB to zero each byte in Vga Space
   MOV rcx, VGA_COL                             ; We set RCX to Char Counter 
-  MOV ax, 0                                    ; RAX (AX for 16-bit) is zero 
+  ; Here, we write the char (00), and the color (0F) in a word 
+  ; But, how we are 'breaking' a register to put in memmory, it has now endianness (Little endiannes) 
+  ; So we write the less significant byte first. First the color, after the characther
+  MOV ax, 0x0F00                               ; RAX (AX for 16-bit) is zero with black BG and white FG
 
   ; Repeat while RCX > 0, move AX to RDI
   REP STOSW

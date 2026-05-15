@@ -11,7 +11,13 @@ VGA_LINE equ 32                           ; 32 VGA Lines
 
 ; Extern Functions 
 extern vga_buffer_scroll_bellow
+extern vga_controller_cursor_update
 
+; Extern Data 
+extern vga_saver_counter
+extern vga_saver_offset
+extern vga_saver_collum 
+extern vga_saver_line
 
 ; Macros Here 
 %macro DebugAny 1 
@@ -41,18 +47,49 @@ extern vga_buffer_scroll_bellow
 %endmacro
 
 
-
 section .text
 ; We use here, the 16-bit version of RSI (SI)
 ; Because security reasons (If the users pass 0 has length in an non C-string, it don't crash)
 global vga_buffer_print
 vga_buffer_print:
-  PUSH rcx                     
-  PUSH r8 
-  PUSH r9
-  PUSH r10 
-  PUSH r11
+  PUSH rax                                ; Global Temporally Register
+  PUSH rcx                                ; Global geral Counter 
+  PUSH r8                                 ; Offset Counter
+  PUSH r9                                 ; Collum Cursor
+  PUSH r10                                ; Line Cursor
+  PUSH r11                                ; Char Counter
 
+  ; Feature to use C-String to print
+  ; Basicly, if length (SI) igual 0, then put the max value (In 16-bit)
+  ; Because, it only stops if reached in \0 byte interpolation (In C-Style)
+  CALL .overflow_len                      
+
+  ; This back cursor (Offset, counter, line and collum) to the last stage 
+  ; In case of multiple calls of this function, it respect the the space of last print 
+  ; If the first time, the variables (Picked from memory) is equal 0
+  CALL .restore_cursor
+
+
+  ; The magic is here
+  ; Parser each char, put in your identation, intepolating breakpoints, scrolling the screen
+  ; This function is a half ungly...
+  CALL loop_str                           
+  
+
+  ; This function save all 4 ccursor registers for next call of this function 
+  ; Inverted of .restore_cursor
+  CALL .save_cursor
+
+  ; Update the location of the cursor, were the the strings end
+  CALL .update_cursor                   
+
+  ; Finally, scrolls 1 time the screen to show the 33th line, normally, it's hidden
+  ; But only if it reached in the final
+  CMP r10, VGA_LINE 
+  JGE .scroll
+
+  JMP done
+.overflow_len:
   ; Lets impelement a feature in string length (SI)
   ; If SI == 0, then we just stop when 0 byte appears (C Style)
   ; So, we overflow SI to the max number in 64-bit 
@@ -64,27 +101,67 @@ vga_buffer_print:
   ; Then, we use CMOVx to condicional move (Like Jx, but does not jump)
   ; If SI == 0, then MOV si, cx... (After, RCX is cleaned, because it is temporally)
   CMP si, 0 
-  CMOVE si, cx
- 
-  XOR rcx, rcx                            ; Zero RCX = Geral Counter
-  XOR r11, r11                            ; Zero R11 = Char counter
-  XOR r8, r8                              ; Zero R8 = Offset
-  XOR r9, r9                              ; Zero R9 = Collum Cursor
-  XOR r10, r10                            ; Zero R10 = Line Cursor
+  CMOVZ si, cx
+  RET                                      ; Finnaly return
+.restore_cursor:
+  ; Restore all this registers from memory (Data Struct)
+  ; Uses the 32-bit version of each register (ECX, R8D...)
+  ; Because, in the memorry the variables is stored has 32-bits (To 64-bits registers)
+  MOV ecx, dword [vga_saver_counter]      ; Restore RCX = Geral Counter
+  MOV r8d, dword [vga_saver_offset]       ; Restore R8 = Offset
+  MOV r9d, dword [vga_saver_collum]       ; Restore R9 = Collum Cursor
+  MOV r10d, dword [vga_saver_line]        ; Restore R10 = Line Cursor
 
-  ; The magic is here
-  CALL loop_str                           ; Parser each char, put in your identation, intepolating breakpoints, scrolling the screen
-  
-  ; Finally, scrolls 1 time the screen to show the 33th line, normally, it's hidden
-  ; But only if it reached in the final
-  CMP r10, VGA_LINE 
-  JGE .scroll
+  ; Now, for and unknow bug, it's nescessary to decrease RCX and R9 if is not the first call of this function 
+  ; So, if RCX (Geral counter) is void (Is 0), so it's the first time that the function is called 
+  ; For resolve this problem, we just use 'CMOVG' to Condicional MOVe if it's Greater (X > Y)
+  ; First, we use temporally RAX to attribute the values (First rax, so RCX)
+  MOV rax, r9                             ; Move R9 to variable 
+  DEC rax                                 ; And decrease one (R9 - 1)
+  ; Now, it's must use first DEC, and after CMP. Because DEC writes (Overwrite) the RFlags
+  CMP rcx, 0                              ; So, compare if the RCX (Picked from the Data Struct form memory) is void
+  CMOVG r9, rax                           ; If not (The first time), then R9 = RAX (R9 = R9 - 1)
 
-  JMP done
+  ; Same work, but with RCX 
+  ; If RCX would be first than R9, the CMP never will be satisfied, because would be MOV the comparated (RCX)
+  MOV rax, rcx                            ; RAX = RCX - 1
+  DEC rax 
+  ; First DEC, after CMP + Condicional Instructions. This is so Boring, also makes the code bigger
+  CMP rcx, 0                              ; If is not the first time, then RCX = RCX - 1
+  CMOVG rcx, rax
+  ; I Hate This bug......
+
+  RET
+.save_cursor:
+  ; Now, save the registers to the memory
+  ; Save all (4 btw) registers used for controlling cursor 
+  MOV dword [vga_saver_counter], ecx      ; Save RCX = Geral Counter
+  MOV dword [vga_saver_offset], r8d       ; Save R8 = Offset
+  MOV dword [vga_saver_collum], r9d       ; Save R9 = Collum Cursor
+  MOV dword [vga_saver_line], r10d        ; Save R10 = Line Cursor .scroll:                                 
+
+  RET
+.update_cursor: 
+  PUSH rdi                                ; Save registers, for don't dirty them 
+  PUSH rsi 
+
+  Debug r9 
+  Debug r10
+  ; We need to change the X, Y of Visual Cursor with VGA Controller
+  MOV rdi, r9                             ; The first argument is the counter
+  MOV rsi, r10 
+  CALL vga_controller_cursor_update
+
+  POP rsi                                 ; Restore them, and return
+  POP rdi 
+  RET
 .scroll:
-  CALL vga_buffer_scroll_bellow
+  CALL vga_buffer_scroll_bellow           ; Scroll to down withou recovery
   JMP done
 
+
+
+; String loopping
 loop_str:
   ; AL = Bottom of AX, just 8-bits, same size of a string
   ; al = char
@@ -96,7 +173,7 @@ loop_str:
 
   ; Add the address, plus 2 bytes-cells of RCX, plus the offset
   SHL r8, 1                               ; Multiplies R8 by 2. Because, is not allowed to do that in []
-  MOV byte [VGA_BFF + 2*rcx+r8],     al   ; MOV to the address 2-bytes-cells (word). The fist is the character (AL)
+  MOV byte [VGA_BFF + 2*rcx+r8],     al   ; MOV to the address 2-bytes-cells (word). The first is the character (AL)
   MOV byte [VGA_BFF + 2*rcx+r8 + 1], 0xF  ; The second byte is the color. 15 = The default color.
   SHR r8, 1                               ; To return in the last state, divide by 2
 
@@ -112,6 +189,7 @@ loop_str:
   CMP r11w, si                            ; Checks if R11W == String Length. String limit
   JB loop_str                             ; If bellow (Unsigned operation), continues the loop
   RET                                     ; Else, return to main function
+
 
 need_reset:
   CMP r9, VGA_COL                         ; If is in the end of line (In 80th char), jump to reset_col
@@ -154,31 +232,19 @@ inter_str:
   ADD rsp, 8                              ; Discard last entry and return 
   RET
 
-
 delete_char:
   INC r11                                 ; Jumps to the next char, replacing the '\n'
   MOV al, [rdi + r11]                     ; Jumps to the next char (Ignoring the \n)
 
   DEC rcx                                 ; So, backs 1 space in te memory, replacing the previous character 
-  RET
-.increase_reg:
-  CMP r10, VGA_LINE 
-  JGE .return 
-
-  ; If it jumps a line, then jumps the match zero-bits value (Jumps 32 spaces, then jumps 32 words (bytes * 2))
-  INC rcx                                 ; Add in RCX to continue in normal flow
-  ADD r8, VGA_COL - 1                     ; Adds to R8, VGA collums minus 1
-  SUB r8, r9                              ; Subtract the offset to the cursor
+  DEC r9                                  ; For don't buggy in screen (Premature EOL)
   RET
 .return: 
   RET
   
-
-
-
 newline_offset:
   INC r11                                 ; Jumps to the next char, replacing the '\n'
-  CALL .increase_reg                      ; Just increases r8 and rcx if the line is bellow of 32 lines
+  CALL .increase_reg                      ; Just increases r9 and rcx if the line is bellow of 32 lines
 
   MOV al, [rdi + r11]                     ; Jumps to the next char (Ignoring the \n)
   
@@ -186,20 +252,33 @@ newline_offset:
   CALL need_scroll                      
   XOR r9, r9                              ; Zeros the collum cursor, back in the begin of line
 
-  CMP r10, VGA_LINE 
-  JGE .return
-  
-  INC r10                                 ; Increase in line cursor
-  RET                                     ; Return to the parser
+  ; We use recursion, when the next char is also '\n'
+  ; If does not implemented this feature (And the next char be '\n'), so it would print the "Inavalid Code", and doesn't jump line
+  CMP al, 0xA                             ; If the next char is '\n'...
+  JE .recursion                           ; Uses recursion to show the next non '\n' char
+
+  JMP newline_offset_continue             ; If not, continues the pipeline
 .increase_reg:
   CMP r10, VGA_LINE 
   JGE .return 
 
   ; If it jumps a line, then jumps the match zero-bits value (Jumps 32 spaces, then jumps 32 words (bytes * 2))
-  INC rcx                                 ; Add in RCX to continue in normal flow
+  INC rcx                                 ; Add in RCX to continue in normal flow 
   ADD r8, VGA_COL - 1                     ; Adds to R8, VGA collums minus 1
   SUB r8, r9                              ; Subtract the offset to the cursor
   RET
+.recursion: 
+  INC r10                                 ; Increases one line and jump to function (Loop)
+  JMP newline_offset
+.return:
+  RET
+
+newline_offset_continue:
+  CMP r10, VGA_LINE 
+  JGE .return
+  
+  INC r10                                 ; Increase in line cursor
+  RET                                     ; Return to the parser
 .return: 
   RET
 
@@ -208,7 +287,7 @@ need_scroll:
   JGE .else                               ; If its equal or greater, scroll down
   RET                                     ; Else return
 .else:
-  CALL vga_buffer_scroll_bellow             ; Uses external function to scrol the screen to down
+  CALL vga_buffer_scroll_bellow           ; Uses external function to scrol the screen to down
   SUB rcx, r9                             ; Keep identation, don't copy of the precious item in the same line
   RET
 
@@ -217,6 +296,7 @@ done:
   POP r10 
   POP r9 
   POP r8
-  POP rcx                                 ; Restore the registers 
+  POP rcx                                 
+  POP rax                                 ; Restore the registers 
 
   RET                                     ; Returns to the main kernel
