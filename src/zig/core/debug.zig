@@ -1,7 +1,8 @@
 // Debug functions
 
-extern fn debug_hex(hex_int: usize) AssemblyString;
+extern fn debug_hex(usize) AssemblyString;
 extern fn debug_wait() void;
+extern fn debug_utf8([*]const u8, usize) void;
 
 // Extern Structs
 const AssemblyString = extern struct {
@@ -23,4 +24,9 @@ pub fn kernel_wait() noreturn {
   while (true) {
     debug_wait();
   }
+}
+
+// Convert UTF8 to CP437 
+pub fn convert_utf8(string: []const u8) void {
+  debug_utf8(string.ptr, string.len);
 }

@@ -3,15 +3,15 @@
 const arc = @import("archive.zig");
 
 // Extern Functions in Assembly
-extern fn vga_buffer_print(str_ptr: [*]const u8, str_len: usize) void;              // VGA Buffer 
+extern fn vga_buffer_print([*]const u8, usize) void;                               // VGA Buffer 
 extern fn vga_buffer_scroll_bellow() void;
 extern fn vga_buffer_scroll_above() void;
 extern fn vga_buffer_scroll_up() void;
 extern fn vga_buffer_scroll_down() void;
 extern fn vga_buffer_clear() void;
 extern fn vga_controller_max_lines() void;                                          // VGA Controller
-extern fn vga_controller_cursor_update(collums: u16, lines: u16) void;
-extern fn com_serial_print(str_ptr: [*]const u8, str_len: usize) void;              // COM Serial 
+extern fn vga_controller_cursor_update(u16, u16) void;
+extern fn com_serial_print([*]const u8, usize) void;                                // COM Serial 
 
 
 // Write function

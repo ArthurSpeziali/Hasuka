@@ -1,6 +1,6 @@
 ; Output print in VGA Buffer 
 ; Receives *RDI as String, RSI as String's length
-; *str RDI (str_ptr), uint64 RSI-16 (str_len)
+; *[uint8] RDI (str_ptr), uint16 RSI-16 (str_len)
 
 BITS 64
 
@@ -73,7 +73,7 @@ vga_buffer_print:
   ; The magic is here
   ; Parser each char, put in your identation, intepolating breakpoints, scrolling the screen
   ; This function is a half ungly...
-  CALL loop_str                           
+  CALL loop_string                           
   
 
   ; This function save all 4 ccursor registers for next call of this function 
@@ -94,9 +94,8 @@ vga_buffer_print:
   ; If SI == 0, then we just stop when 0 byte appears (C Style)
   ; So, we overflow SI to the max number in 64-bit 
   ; Here, as SI is a 16-bit reg, we must use CX (Also 16-bit) from RCX
-  ; XOR cx, cx                             ; Using RCX as temporally register, and zero it
-  ; DEC cx                                 ; So, 0 - 1 = 184..... (Many Digits, it overflow!)
-  MOV cx, 0xFF
+  XOR cx, cx                             ; Using RCX as temporally register, and zero it
+  DEC cx                                 ; So, 0 - 1 = 184..... (Many Digits, it overflow!)
   
   ; Then, we use CMOVx to condicional move (Like Jx, but does not jump)
   ; If SI == 0, then MOV si, cx... (After, RCX is cleaned, because it is temporally)
@@ -141,7 +140,7 @@ vga_buffer_print:
 
 
 ; String loopping
-loop_str:
+loop_string:
   ; AL = Bottom of AX, just 8-bits, same size of a string
   ; al = char
   MOV al, [rdi + r11]                     ; Point to the begin of string + each char (R11)
@@ -166,7 +165,7 @@ loop_str:
   ; Inspect if the string is in the end, if it, then stop
   ; In this case, R11W is the 16-bit version of R11 (W for Word)
   CMP r11w, si                            ; Checks if R11W == String Length. String limit
-  JB loop_str                             ; If bellow (Unsigned operation), continues the loop
+  JB loop_string                          ; If bellow (Unsigned operation), continues the loop
   RET                                     ; Else, return to main function
 
 

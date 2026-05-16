@@ -7,10 +7,14 @@ VGA_COL equ 80
 ; VGA Buffer History
 global vga_history_up 
 global vga_history_down
+; Shared String Word
+global shared_string_word
 section .bss
   ; VGA History
   vga_history_up resw 255*VGA_COL       ; Reserve 255 Lines (80 chars in each, 2 bytes per char)
   vga_history_down resw 255*VGA_COL     ; Total: 510 Lines, 255 Up + 255 Down
+  ; Shared String 
+  shared_string_word resb 0xFFFF        ; Reserve an string of 1 Word (2 Bytes) of chars (65KiB)
 
 
 ; Integer Variables 

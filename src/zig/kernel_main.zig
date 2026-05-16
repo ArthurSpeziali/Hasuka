@@ -27,6 +27,8 @@ export fn kernel_main() noreturn {
     arc.WELCOME_STR
   );
 
+  debug.convert_utf8("Ç");
+
   // Suspend the kernel
   debug.kernel_wait();
 }

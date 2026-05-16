@@ -1,6 +1,6 @@
 ; Output print in COM Serial
 ; Receives *RDI as String (String to print), RSI as Int (Length of String)
-; *str RDI (str_ptr), uint64 RSI (str_len)
+; *[uint8] RDI (str_ptr), uint64 RSI (str_len)
 
 BITS 64
 
