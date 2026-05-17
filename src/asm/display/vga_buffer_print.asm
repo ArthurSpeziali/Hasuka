@@ -45,6 +45,16 @@ extern vga_saver_line
   POP rdx
   POP rax 
 %endmacro
+%macro Serial 2 
+  extern com_serial_print
+  PUSH rdi 
+  PUSH rsi
+  MOV rdi, %1
+  MOV rsi, %2
+  CALL com_serial_print
+  POP rsi 
+  POP rdi
+%endmacro
 
 
 section .text
@@ -52,15 +62,13 @@ section .text
 ; Because security reasons (If the users pass 0 has length in an non C-string, it don't crash)
 global vga_buffer_print
 vga_buffer_print:
-  PUSH rax                                ; Char (1-Byte)
-  PUSH rbx                                ; Ghosty Newline Flag (Or temporally register)
+  PUSH rax                                ; Char byte
+  PUSH rbx                                ; temporally register
   PUSH rcx                                ; Global geral Counter 
   PUSH r8                                 ; Offset Counter
   PUSH r9                                 ; Collum Cursor
   PUSH r10                                ; Line Cursor
   PUSH r11                                ; Char Counter
-
-  XOR rbx, rbx                            ; Cleans the RBX, to know if it changed
 
   ; Feature to use C-String to print
   ; Basicly, if length (SI) igual 0, then put the max value (In 16-bit)
@@ -116,19 +124,6 @@ vga_buffer_print:
   
   RET
 .save_cursor:
-  ; Because the Ghosty Newline Bug, we need to decrease R9 by 1 
-  ; It thinks the space after the \n (A newline with no next character) counts a character 
-  ; So, we compare if this bug ocurred (If RBX is equal 1) using temporally RAX
-  PUSH rax                                ; SAve temporally register
-
-  MOV rax, r9                             ; RAX = R9 - 1
-  DEC rax 
-
-  CMP rbx, 1                              ; If RBX is enabled (The Ghosty Newline had going), so
-  CMOVE r9, rax                           ; R9 = RAX (R9 = R9 - 1)
-
-  POP rax                                 ; Restore temporally register
-
   ; Now, save the registers to the memory
   ; Save all (4 btw) registers used for controlling cursor 
   MOV dword [vga_saver_counter], ecx      ; Save RCX = Geral Counter
@@ -160,16 +155,11 @@ loop_string:
   ; AL = Bottom of AX, just 8-bits, same size of a string
   ; al = char
   MOV al, [rdi + r11]                     ; Point to the begin of string + each char (R11)
-
   ; Jumps to interpolate the string, to find breakpoints, like '\n'
   CALL inter_str                         
 
-
-  ; Add the address, plus 2 bytes-cells of RCX, plus the offset
-  SHL r8, 1                               ; Multiplies R8 by 2. Because, is not allowed to do that in []
-  MOV byte [VGA_BFF + 2*rcx+r8],     al   ; MOV to the address 2-bytes-cells (word). The first is the character (AL)
-  MOV byte [VGA_BFF + 2*rcx+r8 + 1], 0xF  ; The second byte is the color. 15 = The default color.
-  SHR r8, 1                               ; To return in the last state, divide by 2
+  ; So, calls to write the byte (AL) in correct position with R8 and RCX
+  CALL write_byte
 
   INC rcx                                 ; Increases for Geral counter
   INC r11                                 ; Increases for Char counter
@@ -184,6 +174,13 @@ loop_string:
   JB loop_string                          ; If bellow (Unsigned operation), continues the loop
   RET                                     ; Else, return to main function
 
+write_byte:
+  ; Add the address, plus 2 bytes-cells of RCX, plus the offset
+  SHL r8, 1                               ; Multiplies R8 by 2. Because, is not allowed to do that in []
+  MOV byte [VGA_BFF + 2*rcx+r8],     al   ; MOV to the address 2-bytes-cells (word). The first is the character (AL)
+  MOV byte [VGA_BFF + 2*rcx+r8 + 1], 0xF  ; The second byte is the color. 15 = The default color.
+  SHR r8, 1                               ; To return in the last state, divide by 2
+  RET
 
 need_reset:
   CMP r9, VGA_COL                         ; If is in the end of line (In 80th char), jump to reset_col
@@ -214,6 +211,9 @@ inter_str:
   CMP al, 0x8                             ; 0x8 = 8 = \b -> Backspace
   JE delete_char                          ; If equal, jump to delete
 
+  CMP al, 0xD                             ; 0xD = 13 = \r -> Return cursor
+  JE return_cursor                        ; If equal, move the cursor to begin of line 
+
   CMP al, 0x0                             ; 0x0 = 0 = \0 -> End of String
   JE .double_return                       ; If equal, return to main function 
 
@@ -227,27 +227,54 @@ inter_str:
   RET
 
 delete_char:
-  INC r11                                 ; Jumps to the next char, replacing the '\n'
-  MOV al, [rdi + r11]                     ; Jumps to the next char (Ignoring the \n)
+  INC r11                                 ; Jumps to the next char, replacing the '\b'
+  MOV al, [rdi + r11]                     ; Jumps to the next char (Ignoring the \b)
 
-  DEC rcx                                 ; So, backs 1 space in te memory, replacing the previous character 
-  DEC r9                                  ; For don't buggy in screen (Premature EOL)
+  ; For Ghosty Delete char Bug, wer need to deacrease R9 if the enxt byte is 0
+  CALL .ghosty_delete
+
+  ;Then, we compare the actual char with \b, if true, then inicializes an recursion, zering each \b byte in VGA Buffer 
+  CMP al, 0x8 
+  JE .recursion 
+  JNE .else 
+.ghosty_delete: 
+  ; The same bug as '\n', an ghosty character when has an 0 (Void) byte 
+  ; Uses temporally RBX to move the non determined value
+  MOV rbx, r9                             ; RBX = R9 - 1
+  DEC rbx 
+
+  CMP al, 0
+  CMOVZ r9, rbx                           ; If AL == 0, then R9 = R9-1
   RET
+.recursion: 
+  DEC rcx                                 ; So, backs 1 space in te memory, replacing the previous character 
+  DEC r9                                  ; For don't buggy in screen (Premature EOL) 
+
+  MOV al, 0x0                             ; AL = Null Byte (Zero)
+  CALL write_byte                         ; Writes byte directly in VGA Buffer 
+
+  JMP delete_char                         ; Continues the Loop
+.else:  
+  DEC rcx                                 ; If the next byte is not \b, then just move the cursor (Erase the char) one time 
+  DEC r9 
+  RET                                     ; Then return to main fucntion
 .return: 
   RET
   
+return_cursor: 
+  RET
+
 newline_offset:
   INC r11                                 ; Jumps to the next char, replacing the '\n'
   CALL .increase_reg                      ; Just increases r9 and rcx if the line is bellow of 32 lines
 
-
   MOV al, [rdi + r11]                     ; Jumps to the next char (Ignoring the \n)
-
-  CALL .ghosty_newline                    ; Checks if the ghosty newline bug has going
 
   ; Inspect if it need to scroll the screen 
   CALL need_scroll                      
   XOR r9, r9                              ; Zeros the collum cursor, back in the begin of line
+
+  CALL .ghosty_newline                    ; Checks if the ghosty newline bug has going
 
   ; We use recursion, when the next char is also '\n'
   ; If does not implemented this feature (And the next char be '\n'), so it would print the "Inavalid Code", and doesn't jump line
@@ -255,27 +282,29 @@ newline_offset:
   JE .recursion                           ; Uses recursion to show the next non '\n' char
 
   JMP newline_offset_continue             ; If not, continues the pipeline
-  RET
 .ghosty_newline: 
-  ; Use temporally RDX, for move the non determined value (temporally)
-  PUSH rdx 
-
+  ; Use temporally RBX, for move the non determined value (temporally)
   ; The value is RCX - 1 
-  MOV rdx, rcx 
-  DEC rdx
+  MOV rbx, rcx 
+  DEC rbx
   ; If the next byte is void, deacreses one of RCX. It's a bug, that it put a space rather than ignoring it 
   ; So later, i think a better solution for this. But for while, is it
   ; I named this bug as Ghosty Newline. The pupose i've used RBX is indicates that bugs appeared
   CMP al, 0                               ; If the next byte is zero, 
-  CMOVZ rcx, rdx                          ; The RCX is equal RBX (RCX - 1). So, decreases RCX if the next byte is zero 
+  CMOVZ rcx, rbx                          ; The RCX is equal RBX (RCX - 1). So, decreases RCX if the next byte is zero 
 
-  ; So, use (temporally) rdx to define to 1 (Enbled), and if the condicion is satisfied, MOVe to RBX
-  MOV rdx, 1                              ; MOV dont interact with RFLAGS, so it's safe             
-  CMOVZ rbx, rdx                          ; Set RBX to 1. This indicates the GNB has ocurred
+  ; For a bug, we overflow R9 (Now, R9 is zero)
+  ; So, in the next use, it increment one, resulting in absolute zero 
+  ; It's nescessary, because R9 thinks RCX is in the old value (RCX + 1), adding 1 more in X in cursor
 
-  POP rdx                                 ; Backs RDX to original value, and return 
+  ; Same work, mov the undertermined value to RBX, then RBX to R9 
+  MOV rbx, r9 
+  DEC rbx
+
+  CMP al, 0  
+  CMOVZ r9, rbx
+
   RET
-
 .increase_reg:
   CMP r10, VGA_LINE-1
   JGE .return 
