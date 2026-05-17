@@ -1,6 +1,6 @@
-; Convert a full UTF-8 Sthreeng, into a CP437 (Table used by VGA Buffer)
-; Receives *RDI as Sthreeng, RSI as Sthreeng's length, and return the new Sthreeng and new Sthreeng length 
-; *[uint8] RDI (str_ptr), uint16 RSI-16 (str_len) => *[uint8] RAX (str_ptr), uint16 RDX-16 (str_len)
+; Convert a full UTF-8 String, into a CP437 (Table used by VGA Buffer)
+; Receives *RDI as String, RSI as String's length, and return the new String and new String length 
+; *[uint8] RDI (str_ptr), uint16 RSI-16 (str_len) => *&[uint8] RAX (str_ptr), uint16 RDX-16 (str_len)
 
 BITS 64
 
@@ -65,7 +65,7 @@ debug_utf8:
   XOR rdx, rdx                                 ; Zeros RDX = Counter of CP437 Chars
 
   CALL loop_string                             ; Parser each char of the string
-  CALL .add_zero                               ; Add a 0 Byte at final in string
+  CALL .add_zero                               ; Add a 0 Byte at final in string 
 
   JMP done
 .overflow_len: 
@@ -80,7 +80,7 @@ debug_utf8:
   CMOVZ si, cx                                 ; MOVe CX to SI. Then SI is the max 16-bit integer has 
   RET                                          ; Finnaly, return
 .add_zero: 
-  ; Add an \0 byte at the final of string, certifiying of C-Sthreeng is working
+  ; Add an \0 byte at the final of string, ensuring of C-String is working
   MOV byte [shared_string_word + rdx], 0
   RET
 
@@ -89,7 +89,7 @@ loop_string:
   ; Let's pick one per one char. Putting in AL (1 Byte)
   MOV al, [rdi + rcx]                          ; RDI where the string are + RCX the char counter
 
-  ; View if his byte is a \0 Byte. C-Style Sthreeng Feature 
+  ; View if his byte is a \0 Byte. C-Style String Feature 
   CMP al, 0 
   JZ .return 
 
@@ -278,12 +278,50 @@ convert_three_bytes:
   ADD rcx, 3                                   ; Next 3 characters (bytes)
   JMP loop_string_continue                     ; After, we continues to checking if there's more loop
 .table_convert: 
+  CPtoUTF_Three 0xE296A0, 0xFE                 ; ■
+  CPtoUTF_Three 0xE28097, 0xF2                 ; ‗
+  CPtoUTF_Three 0xE289A1, 0xF0                 ; ≡
+  CPtoUTF_Three 0xE29680, 0xDF                 ; ▀
+  CPtoUTF_Three 0xE29498, 0xD9                 ; ┘
+  CPtoUTF_Three 0xE2948C, 0xDA                 ; ┌
+  CPtoUTF_Three 0xE29688, 0xDB                 ; █
+  CPtoUTF_Three 0xE29684, 0xDC                 ; ▄
+  CPtoUTF_Three 0xE2959A, 0xC8                 ; ╚
+  CPtoUTF_Three 0xE29594, 0xC9                 ; ╔
+  CPtoUTF_Three 0xE295A9, 0xCA                 ; ╩
+  CPtoUTF_Three 0xE295A6, 0xCB                 ; ╦
+  CPtoUTF_Three 0xE295A0, 0xCC                 ; ╠
+  CPtoUTF_Three 0xE29590, 0xCD                 ; ═
+  CPtoUTF_Three 0xE295AC, 0xCE                 ; ╬
+  CPtoUTF_Three 0xE29490, 0xBF                 ; ┐
+  CPtoUTF_Three 0xE29494, 0xC0                 ; └
+  CPtoUTF_Three 0xE294B4, 0xC1                 ; ┴
+  CPtoUTF_Three 0xE294AC, 0xC2                 ; ┬
+  CPtoUTF_Three 0xE2949C, 0xC3                 ; ├
+  CPtoUTF_Three 0xE29480, 0xC4                 ; ─
+  CPtoUTF_Three 0xE294BC, 0xC5                 ; ┼
+  CPtoUTF_Three 0xE295A3, 0xB9                 ; ╣
+  CPtoUTF_Three 0xE29591, 0xBA                 ; ║
+  CPtoUTF_Three 0xE29597, 0xBB                 ; ╗
+  CPtoUTF_Three 0xE2959D, 0xBC                 ; ╝
+  CPtoUTF_Three 0xE29691, 0xB0                 ; ░
+  CPtoUTF_Three 0xE29692, 0xB1                 ; ▒
+  CPtoUTF_Three 0xE29693, 0xB2                 ; ▓
+  CPtoUTF_Three 0xE29482, 0xB3                 ; │
+  CPtoUTF_Three 0xE294A4, 0xB4                 ; ┤
+  CPtoUTF_Three 0xE28C90, 0xA9                 ; ⌐
+  CPtoUTF_Three 0xE282A7, 0x9E                 ; ₧
+  RET
 .write_cp437:
   MOV byte [shared_string_word + rdx], al 
   INC rdx                                      ; Increases one byte in only CP437 counter
   RET                                          ; Then returns, we find it
 
 done: 
+  ; Ensuring the returning is correct for 2 returns (RAX for string and RDX for length)
+  MOV rax, shared_string_word                  ; RAX as a pointer to string (Shared)
+  ; RDX is just setted as string length 
+
   POP rcx
   POP rbx
   RET

@@ -52,12 +52,15 @@ section .text
 ; Because security reasons (If the users pass 0 has length in an non C-string, it don't crash)
 global vga_buffer_print
 vga_buffer_print:
-  PUSH rax                                ; Global Temporally Register
+  PUSH rax                                ; Char (1-Byte)
+  PUSH rbx                                ; Ghosty Newline Flag (Or temporally register)
   PUSH rcx                                ; Global geral Counter 
   PUSH r8                                 ; Offset Counter
   PUSH r9                                 ; Collum Cursor
   PUSH r10                                ; Line Cursor
   PUSH r11                                ; Char Counter
+
+  XOR rbx, rbx                            ; Cleans the RBX, to know if it changed
 
   ; Feature to use C-String to print
   ; Basicly, if length (SI) igual 0, then put the max value (In 16-bit)
@@ -113,6 +116,19 @@ vga_buffer_print:
   
   RET
 .save_cursor:
+  ; Because the Ghosty Newline Bug, we need to decrease R9 by 1 
+  ; It thinks the space after the \n (A newline with no next character) counts a character 
+  ; So, we compare if this bug ocurred (If RBX is equal 1) using temporally RAX
+  PUSH rax                                ; SAve temporally register
+
+  MOV rax, r9                             ; RAX = R9 - 1
+  DEC rax 
+
+  CMP rbx, 1                              ; If RBX is enabled (The Ghosty Newline had going), so
+  CMOVE r9, rax                           ; R9 = RAX (R9 = R9 - 1)
+
+  POP rax                                 ; Restore temporally register
+
   ; Now, save the registers to the memory
   ; Save all (4 btw) registers used for controlling cursor 
   MOV dword [vga_saver_counter], ecx      ; Save RCX = Geral Counter
@@ -124,7 +140,7 @@ vga_buffer_print:
 .update_cursor: 
   PUSH rdi                                ; Save registers, for don't dirty them 
   PUSH rsi 
-  
+
   ; We need to change the X, Y of Visual Cursor with VGA Controller
   MOV rdi, r9                             ; The first argument is the counter
   MOV rsi, r10 
@@ -224,8 +240,11 @@ newline_offset:
   INC r11                                 ; Jumps to the next char, replacing the '\n'
   CALL .increase_reg                      ; Just increases r9 and rcx if the line is bellow of 32 lines
 
+
   MOV al, [rdi + r11]                     ; Jumps to the next char (Ignoring the \n)
-  
+
+  CALL .ghosty_newline                    ; Checks if the ghosty newline bug has going
+
   ; Inspect if it need to scroll the screen 
   CALL need_scroll                      
   XOR r9, r9                              ; Zeros the collum cursor, back in the begin of line
@@ -236,6 +255,27 @@ newline_offset:
   JE .recursion                           ; Uses recursion to show the next non '\n' char
 
   JMP newline_offset_continue             ; If not, continues the pipeline
+  RET
+.ghosty_newline: 
+  ; Use temporally RDX, for move the non determined value (temporally)
+  PUSH rdx 
+
+  ; The value is RCX - 1 
+  MOV rdx, rcx 
+  DEC rdx
+  ; If the next byte is void, deacreses one of RCX. It's a bug, that it put a space rather than ignoring it 
+  ; So later, i think a better solution for this. But for while, is it
+  ; I named this bug as Ghosty Newline. The pupose i've used RBX is indicates that bugs appeared
+  CMP al, 0                               ; If the next byte is zero, 
+  CMOVZ rcx, rdx                          ; The RCX is equal RBX (RCX - 1). So, decreases RCX if the next byte is zero 
+
+  ; So, use (temporally) rdx to define to 1 (Enbled), and if the condicion is satisfied, MOVe to RBX
+  MOV rdx, 1                              ; MOV dont interact with RFLAGS, so it's safe             
+  CMOVZ rbx, rdx                          ; Set RBX to 1. This indicates the GNB has ocurred
+
+  POP rdx                                 ; Backs RDX to original value, and return 
+  RET
+
 .increase_reg:
   CMP r10, VGA_LINE-1
   JGE .return 
@@ -275,6 +315,7 @@ done:
   POP r9 
   POP r8
   POP rcx                                 
+  POP rbx
   POP rax                                 ; Restore the registers 
 
   RET                                     ; Returns to the main kernel
