@@ -261,8 +261,41 @@ delete_char:
 .return: 
   RET
   
-return_cursor: 
-  RET
+return_cursor:
+  ; Back Cursor to the begin of line
+  INC r11 
+  MOV al, [rdi + r11]
+  
+  ; Compare the actual char with null. If it's, them jump to Ghosty Return Handler
+  CMP al, 0
+  JZ .ghosty_return
+
+  CMP al, 0xD 
+  JE .recursion
+
+  ; If the next byte is not invalid (Zero byte or \r byte)
+  ; Here, we subtract RCX by R9 (New chars will be placed at the begin of line)
+  ; And zeros R9, so the cursor will show at the begin of line
+  SUB rcx, r9 
+  XOR r9, r9 
+  RET 
+.ghosty_return:
+  ; Here, we calculate the memory addres of the target char it is
+  LEA rbx, [rdi + r11]                    ; So, the target is: RDI + R11 - R9
+  SUB rbx, r9
+  
+  MOV al, [rbx]                           ; AL = the destination of this memory address (In RBX) 
+
+  ; So, we subtrate RCX by R9, and zeros R9 (Reset the line)
+  SUB rcx, r9 
+  XOR r9, r9 
+
+  ; Them, we must ignoring the null byte (0), so we decrease each register
+  DEC r9
+  DEC rcx
+  RET                                     ; Then return
+.recursion:
+  JMP return_cursor
 
 newline_offset:
   INC r11                                 ; Jumps to the next char, replacing the '\n'
@@ -280,8 +313,7 @@ newline_offset:
   ; If does not implemented this feature (And the next char be '\n'), so it would print the "Inavalid Code", and doesn't jump line
   CMP al, 0xA                             ; If the next char is '\n'...
   JE .recursion                           ; Uses recursion to show the next non '\n' char
-
-  JMP newline_offset_continue             ; If not, continues the pipeline
+  JNE .else             ; If not, continues the pipeline
 .ghosty_newline: 
   ; Use temporally RBX, for move the non determined value (temporally)
   ; The value is RCX - 1 
@@ -317,16 +349,13 @@ newline_offset:
 .recursion: 
   INC r10                                 ; Increases one line and jump to function (Loop)
   JMP newline_offset
-.return:
-  RET
-
-newline_offset_continue:
+.else:
   CMP r10, VGA_LINE-1
   JGE .return
   
   INC r10                                 ; Increase in line cursor
   RET                                     ; Return to the parser
-.return: 
+.return:
   RET
 
 need_scroll:
