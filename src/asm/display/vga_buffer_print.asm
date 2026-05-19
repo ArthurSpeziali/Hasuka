@@ -230,13 +230,17 @@ delete_char:
   INC r11                                 ; Jumps to the next char, replacing the '\b'
   MOV al, [rdi + r11]                     ; Jumps to the next char (Ignoring the \b)
 
+  CMP r9, 0
+  JZ .return
+
   ; For Ghosty Delete char Bug, wer need to deacrease R9 if the enxt byte is 0
   CALL .ghosty_delete
 
-  ;Then, we compare the actual char with \b, if true, then inicializes an recursion, zering each \b byte in VGA Buffer 
-  CMP al, 0x8 
-  JE .recursion 
-  JNE .else 
+  ; We compare the actual char with other breakpoints, if true, then inicializes an recursion, zering each \b byte in VGA Buffer 
+  ; The breakpoints stops at 0x1F (31) in ASCII Table. So, if is a breakpoint (\r, \n...), it continues the loop
+  CMP al, 0x1F
+  JLE .recursion 
+  JG .else 
 .ghosty_delete: 
   ; The same bug as '\n', an ghosty character when has an 0 (Void) byte 
   ; Uses temporally RBX to move the non determined value
@@ -250,14 +254,16 @@ delete_char:
   DEC rcx                                 ; So, backs 1 space in te memory, replacing the previous character 
   DEC r9                                  ; For don't buggy in screen (Premature EOL) 
 
+  PUSH rax                                ; Saves the actually character
   MOV al, 0x0                             ; AL = Null Byte (Zero)
   CALL write_byte                         ; Writes byte directly in VGA Buffer 
+  POP rax                                 ; Restore the char
 
-  JMP delete_char                         ; Continues the Loop
+  JMP inter_str                         ; Continues the Loop
 .else:  
   DEC rcx                                 ; If the next byte is not \b, then just move the cursor (Erase the char) one time 
   DEC r9 
-  RET                                     ; Then return to main fucntion
+  RET                                     ; Then return to main function
 .return: 
   RET
   
@@ -265,20 +271,16 @@ return_cursor:
   ; Back Cursor to the begin of line
   INC r11 
   MOV al, [rdi + r11]
-  
+
   ; Compare the actual char with null. If it's, them jump to Ghosty Return Handler
   CMP al, 0
   JZ .ghosty_return
-
-  CMP al, 0xD 
-  JE .recursion
-
-  ; If the next byte is not invalid (Zero byte or \r byte)
-  ; Here, we subtract RCX by R9 (New chars will be placed at the begin of line)
-  ; And zeros R9, so the cursor will show at the begin of line
-  SUB rcx, r9 
-  XOR r9, r9 
-  RET 
+  
+  ; If the char is a breakpoint again, so uses recursion to find the nex valid byte
+  ; The breakpoints stops at 0x1F (31) in ASCII Table. So, if is a breakpoint (\r, \n...), it continues the loop
+  CMP al, 0x1F
+  JLE .recursion
+  JG .else
 .ghosty_return:
   ; Here, we calculate the memory addres of the target char it is
   LEA rbx, [rdi + r11]                    ; So, the target is: RDI + R11 - R9
@@ -295,7 +297,15 @@ return_cursor:
   DEC rcx
   RET                                     ; Then return
 .recursion:
-  JMP return_cursor
+  JMP inter_str                       ; Backs to the interpolation string function
+.else
+  ; If the next byte is not invalid (Zero byte or \r byte)
+  ; Here, we subtract RCX by R9 (New chars will be placed at the begin of line)
+  ; And zeros R9, so the cursor will show at the begin of line
+  SUB rcx, r9 
+  XOR r9, r9 
+  RET 
+
 
 newline_offset:
   INC r11                                 ; Jumps to the next char, replacing the '\n'
@@ -309,11 +319,12 @@ newline_offset:
 
   CALL .ghosty_newline                    ; Checks if the ghosty newline bug has going
 
-  ; We use recursion, when the next char is also '\n'
+  ; We use recursion, when the next char is like a '\n' or '\b'
   ; If does not implemented this feature (And the next char be '\n'), so it would print the "Inavalid Code", and doesn't jump line
-  CMP al, 0xA                             ; If the next char is '\n'...
-  JE .recursion                           ; Uses recursion to show the next non '\n' char
-  JNE .else             ; If not, continues the pipeline
+  ; The breakpoints stops at 0x1F (31) in ASCII Table. So, if is a breakpoint (\r, \n...), it continues the loop
+  CMP al, 0x1F                             ; If the next char is '\n'...
+  JLE .recursion                           ; Uses recursion to show the next non '\n' char
+  JG .else                                 ; If not, continues the pipeline
 .ghosty_newline: 
   ; Use temporally RBX, for move the non determined value (temporally)
   ; The value is RCX - 1 
@@ -348,7 +359,7 @@ newline_offset:
   RET
 .recursion: 
   INC r10                                 ; Increases one line and jump to function (Loop)
-  JMP newline_offset
+  JMP inter_str
 .else:
   CMP r10, VGA_LINE-1
   JGE .return

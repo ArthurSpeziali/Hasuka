@@ -23,9 +23,10 @@ export fn kernel_main() noreturn {
   stdout.clear();
 
   // Welcome print
-  stdout.print(
-    arc.WELCOME_STR
-  );
+  // stdout.print(
+  //   arc.WELCOME_STR
+  // );
+  stdout.print("Hello");
 
   // Suspend the kernel
   debug.kernel_wait();
