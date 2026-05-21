@@ -23,9 +23,11 @@ export fn kernel_main() noreturn {
   stdout.clear();
 
   // Welcome print
-  stdout.print(
-    arc.WELCOME_STR
-  );
+  // stdout.print(
+  //   arc.WELCOME_STR
+  // );
+
+  stdout.print("Hello\x06\x06BeautyWorld");
 
   // Suspend the kernel
   debug.kernel_wait();

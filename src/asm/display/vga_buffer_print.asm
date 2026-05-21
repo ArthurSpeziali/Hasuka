@@ -19,6 +19,12 @@ extern vga_saver_offset
 extern vga_saver_collum 
 extern vga_saver_line
 
+; Memory variables 
+section .data 
+  ; The real number of character in a line 
+  ; It's different than R9, that points to cursor (Relative position)
+  absolute_chars_line db 0                
+
 ; Macros Here 
 %macro DebugAny 1 
   PUSH rax 
@@ -161,8 +167,12 @@ loop_string:
   ; So, calls to write the byte (AL) in correct position with R8 and RCX
   CALL write_byte
 
+  ; Revaluete the total chars in line, then move this value to memory variable 
+  CALL read_byte 
+  MOV byte [absolute_chars_line], al      ; Use AL here (The max value is 80, which fits in a byte)
+
   INC rcx                                 ; Increases for Geral counter
-  INC r11                                 ; Increases for Char counter
+  INC r11                                 ; Increases for Char Counter
   INC r9                                  ; Increases for Cursor
 
   ; Inspect if has overflowed the line, the jump to the next line without '\n' breakpoint
@@ -182,6 +192,31 @@ write_byte:
   SHR r8, 1                               ; To return in the last state, divide by 2
   RET
 
+read_byte: 
+  PUSH rdi 
+  PUSH rcx
+  ; Search for first 0-byte of the line, and return in RAX the char counter
+  ; First, we use this formulae to evalute the begin of current line: VGA_BFF + r10 * VGA_COL
+  ; We will use temporally RDI to evalute this result (RDI is an argument of SCASW)
+  IMUL rdi, r10, VGA_COL
+  ADD rdi, VGA_BFF 
+
+  MOV rcx, VGA_COL                        ; Search for all characters in the line
+  MOV ax, 0x0F00                          ; Search for zero byte with default color in a word (AX)
+
+  ; Repeat while (RCX > 0 && ZF == 0), scaning single world 
+  REPNE SCASW 
+  ; After, we want the number of iterations. That's RCX - 1
+  ; So, we move the VGA_COL (The maximum value) to RAX, then we SUBtract RAX to RCX and decrease 1 in RAX
+  MOV rax, VGA_COL 
+  SUB rax, rcx
+  DEC rax                                 ; The result is VGA_COL - (RCX+1). This is the number of chars in line
+
+  ; Recoverty the SCASx registers and return. The return value is in RAX
+  POP rcx 
+  POP rdi
+  RET
+
 need_reset:
   CMP r9, VGA_COL                         ; If is in the end of line (In 80th char), jump to reset_col
   JGE reset_col
@@ -189,6 +224,8 @@ need_reset:
 
 reset_col:
   XOR r9, r9                              ; Zeros the Collum cursor, back in the line's begin
+
+  MOV byte [absolute_chars_line], 0       ; Also cleans the 'absolute_chars_line', that representts all chars in current line
 
   ; Show that we jumped one line with a friendly character '^' (94 in Ascii)
   DEC r11                                ; Goes back one character
@@ -205,7 +242,11 @@ reset_col:
   RET
 
 inter_str:
-  ; Cursor breakpoints
+  ; Cursor breakpoints 
+  ; NXT-CHAR                               
+  CMP al, 0x6                             ; 0x6 = 6 = . -> Next Char 
+  JE next_char                            ; If equal, move the the cursor to next char
+
   ; RET-CHAR
   CMP al, 0x7                             ; 0x7 = 7 = . -> Return char
   JE return_char                          ; If equal, move the cursor to previous char
@@ -237,6 +278,34 @@ inter_str:
   ; So, we can just discard that last CALL (Entry)
   ; Using 'POP register' or adding 8 in RSP (That's whats we do)
   ADD rsp, 8                              ; Discard last entry and return 
+  RET
+ 
+
+; Cursor breakpoints
+next_char:
+  ; Next char
+  INC r11 
+  MOV al, [rdi + r11]
+
+  ; If the char is bellow of 32 (The breakpoints space), then use recursion to show the next valid char
+  CMP al, 0x1F
+  JLE .recursion 
+  JG .else 
+.return: 
+  RET
+.recursion:
+  ; Calls the main code, then jump to inter_str (Continues the loop)
+  CALL .else
+  JMP inter_str 
+.else:
+  ; So we compare the current char in line (Relative), with the total chars in line (Absolute)
+  ; If we back one character, then R9 < absolute_chars_line. Else, it's return without effect
+  CMP r9b, byte [absolute_chars_line]     ; We use R9B because it's 8-bits comparation (Register and Memory) 
+  JGE .return                             ; Cancel the operation if R9 is equal (Or greater) than absolute_chars_line
+
+  ; Increases the Geral Counter and the Char Counter
+  INC rcx 
+  INC r9
   RET
 
 return_char: 
@@ -336,7 +405,7 @@ return_line:
   RET                                     ; Then return
 .recursion:
   JMP inter_str                       ; Backs to the interpolation string function
-.else
+.else:
   ; If the next byte is not invalid (Zero byte or \r byte)
   ; Here, we subtract RCX by R9 (New chars will be placed at the begin of line)
   ; And zeros R9, so the cursor will show at the begin of line
@@ -419,6 +488,9 @@ newline_offset:
   CALL .increase_reg                      ; Just increases r9 and rcx if the line is bellow of 32 lines
 
   MOV al, [rdi + r11]                     ; Jumps to the next char (Ignoring the \n)
+
+  ; We zeros 'absolute_chars_line', because we are starting in a new line 
+  MOV byte [absolute_chars_line], 0
 
   ; Inspect if it need to scroll the screen 
   CALL need_scroll                      
