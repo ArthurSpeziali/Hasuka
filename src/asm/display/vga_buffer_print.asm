@@ -18,12 +18,7 @@ extern vga_saver_counter
 extern vga_saver_offset
 extern vga_saver_collum 
 extern vga_saver_line
-
-; Memory variables 
-section .data 
-  ; The real number of character in a line 
-  ; It's different than R9, that points to cursor (Relative position)
-  absolute_chars_line db 0                
+extern vga_absolute_chars
 
 ; Macros Here 
 %macro DebugAny 1 
@@ -169,7 +164,7 @@ loop_string:
 
   ; Revaluete the total chars in line, then move this value to memory variable 
   CALL read_byte 
-  MOV byte [absolute_chars_line], al      ; Use AL here (The max value is 80, which fits in a byte)
+  MOV byte [vga_absolute_chars], al      ; Use AL here (The max value is 80, which fits in a byte)
 
   INC rcx                                 ; Increases for Geral counter
   INC r11                                 ; Increases for Char Counter
@@ -225,7 +220,7 @@ need_reset:
 reset_col:
   XOR r9, r9                              ; Zeros the Collum cursor, back in the line's begin
 
-  MOV byte [absolute_chars_line], 0       ; Also cleans the 'absolute_chars_line', that representts all chars in current line
+  MOV byte [vga_absolute_chars], 0       ; Also cleans the 'vga_absolute_chars', that representts all chars in current line
 
   ; Show that we jumped one line with a friendly character '^' (94 in Ascii)
   DEC r11                                ; Goes back one character
@@ -299,9 +294,9 @@ next_char:
   JMP inter_str 
 .else:
   ; So we compare the current char in line (Relative), with the total chars in line (Absolute)
-  ; If we back one character, then R9 < absolute_chars_line. Else, it's return without effect
-  CMP r9b, byte [absolute_chars_line]     ; We use R9B because it's 8-bits comparation (Register and Memory) 
-  JGE .return                             ; Cancel the operation if R9 is equal (Or greater) than absolute_chars_line
+  ; If we back one character, then R9 < vga_absolute_chars. Else, it's return without effect
+  CMP r9b, byte [vga_absolute_chars]     ; We use R9B because it's 8-bits comparation (Register and Memory) 
+  JGE .return                             ; Cancel the operation if R9 is equal (Or greater) than vga_absolute_chars
 
   ; Increases the Geral Counter and the Char Counter
   INC rcx 
@@ -489,8 +484,8 @@ newline_offset:
 
   MOV al, [rdi + r11]                     ; Jumps to the next char (Ignoring the \n)
 
-  ; We zeros 'absolute_chars_line', because we are starting in a new line 
-  MOV byte [absolute_chars_line], 0
+  ; We zeros 'vga_absolute_chars', because we are starting in a new line 
+  MOV byte [vga_absolute_chars], 0
 
   ; Inspect if it need to scroll the screen 
   CALL need_scroll                      

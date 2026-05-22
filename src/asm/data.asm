@@ -26,6 +26,8 @@ global vga_saver_counter
 global vga_saver_offset 
 global vga_saver_collum 
 global vga_saver_line
+; VGA Variables 
+global vga_absolute_chars
 section .data
   ; VGA History
   vga_entries_up db 0                   ; 1 Byte = 256 numbers
@@ -38,4 +40,7 @@ section .data
   vga_saver_collum dd 0                 ; R9
   vga_saver_line dd 0                   ; R10
 
+  ; VGA Memmory Variables
+  ; The real number of character in a line 
+  vga_absolute_chars db 0                
 
