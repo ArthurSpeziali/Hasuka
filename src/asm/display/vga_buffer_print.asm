@@ -212,6 +212,73 @@ read_byte:
   POP rdi
   RET
 
+pull_byte:
+  ; Back N bytes to visual buffer in line. Where N is RAX 
+  ; Before: "····Hello", After (RAX = 3): "·Hello"
+  PUSH rdi                                ; First, save all registers 
+  PUSH rsi 
+  PUSH rcx 
+
+  ; First, detect if there's any byte (And if has, how many) different to zero. Then put this value in RAX
+  CALL .detect_zero_byte
+
+  Debug rax
+
+  ; Loop to pull the chars in line RAX times 
+  CALL .loop
+
+  POP rcx                                 ; Restore each MOVSW/SCASW registers, then return
+  POP rsi 
+  POP rdi
+  RET
+.detect_zero_byte:
+  ; 0x0F00 = Default color + 0 byte
+  MOV ax, 0x0F00                          ; Which word we are searching
+  MOV rcx, VGA_COL                        ; How many times we will repeat it
+
+  ; The formulae is: RSI = R10 * VGA_COL + VGA_BFF 
+  IMUL rdi, r10, VGA_COL                  ; The destiny of scan
+  ADD rdi, VGA_BFF 
+
+  ; This will stop after search the non-zero byte
+  REPE SCASW                              ; While ZF = 1 and RCX > 0, compare [RDI] to AX, add 2 to RDI and decrease RCX
+
+  ; We want now how many times we are looped. So, we use this formulae: RAX = VGA_COL - RCX - 1 
+  MOV rax, VGA_COL                        
+  SUB rax, rcx 
+  DEC rax      
+
+  ; If RAX is 79 (The max limit), so it will looped every byte and does not find any valid byte 
+  ; So, we use non-determined value to atribute 0 in RAX if the old value was 79 
+  MOV rbx, 0                              ; RBX to non-determined value 
+
+  CMP rax, VGA_COL-1                       ; RAX == VGA_COL-1 (79)
+  CMOVE rax, rbx                           ; If equal, then RAX = 0
+
+  RET
+.loop:
+  CMP rax, 0                              ; If RAX = 0, the loop has over
+  JZ .return 
+
+  ; Now, we calculate the destiny address (Where line we want in VGA Buffer)
+  ; The formulae is: RSI = R10 * VGA_COL + VGA_BFF 
+  IMUL rdi, r10, VGA_COL 
+  ADD rdi, VGA_BFF 
+
+  ; So, the destiny is RSI - 2 (RSI minus 1 word)
+  MOV rsi, rdi 
+  ADD rsi, 2
+
+  MOV rcx, VGA_COL                        ; This will repeat 80 times
+  REP MOVSW                               ; So, move each word of RSI to RDI, 80 times
+
+  DEC rax                                 ; Decrease RAX for continue the loop 
+  JNZ .loop                               ; If not, then continues the loop
+.return:
+  RET
+
+
+
 need_reset:
   CMP r9, VGA_COL                         ; If is in the end of line (In 80th char), jump to reset_col
   JGE reset_col
@@ -248,7 +315,12 @@ inter_str:
   
   ; DLT-CHAR
   CMP al, 0x8                             ; 0x8 = 8 = \b -> Backspace
-  JE delete_char                          ; If equal, delete the next char
+  JE delete_char                          ; If equal, delete the previous char
+
+  ; ERS-CHAR                              
+  ; CMP al, 0x9                             ; 0x9 = 9 = \d -> Delete 
+  ; JE erase_char                           ; If equal, delte the next char
+
 
   ; NXT-LINE
   CMP al, 0xC                             ; 0xC = 12 = . -> Advance cursor 
@@ -487,6 +559,9 @@ delete_line:
   
   ; For last, writes the last byte in First char of line
   CALL write_byte
+ 
+  ; If there's any 0 byte before an valid byte, then reajust and pull these 0 bytes
+  CALL pull_byte
 
   ; If R9 = 0, then return without any effect (And restore the saved regissters)
   POP rax

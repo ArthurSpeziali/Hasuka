@@ -27,8 +27,8 @@ export fn kernel_main() noreturn {
   //   arc.WELCOME_STR
   // );
 
-  stdout.print("Hello\x0DXY"); 
-  stdout.print("\x0CBeautyWorld");
+  stdout.print("HelloXY");
+  stdout.print("\x07\x07\x0E");
 
   // Suspend the kernel
   debug.kernel_wait();
