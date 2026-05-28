@@ -250,6 +250,10 @@ inter_str:
   CMP al, 0x8                             ; 0x8 = 8 = \b -> Backspace
   JE delete_char                          ; If equal, delete the next char
 
+  ; NXT-LINE
+  CMP al, 0xC                             ; 0xC = 12 = . -> Advance cursor 
+  JE next_line                            ; If equal, move the cursor to end of line
+
   ; RET-LINE
   CMP al, 0xD                             ; 0xD = 13 = \r -> Return cursor
   JE return_line                          ; If equal, move the cursor to begin of line 
@@ -368,7 +372,32 @@ delete_char:
   RET                                     ; Then return to main function
 .return: 
   RET
+ 
+next_line:
+  ; Next char (Withou this breakpoint)
+  INC r11 
+  MOV al, [rdi + r11]
+
+  CMP al, 0x1F 
+  JLE .recursion 
+  JG .else 
+.recursion:
+  CALL .else 
+  JMP inter_str
+.else:
+  ; So, we calculate the rest of chares in line, that's vga_absolute_chars - R9 
+  ; We use temporally RBX to evaluate the result of subtration 
+  ; Use MOVZX to zero the higher part (And recursivily highers parts) of the quad byte (From unique byute) 
+  MOVZX rbx, byte [vga_absolute_chars]
+  SUB rbx, r9                            ; RBX = vga_absolute_chars - R9 = Rest chars in line 
   
+  ADD r9, rbx                            ; So, R9 = R9 + (vga_absolute_chars - R9)
+  ADD rcx, rbx                           ; And add to RCX the rest of chars in line
+
+  RET                                    ; Then, return
+.return: 
+  RET
+
 return_line:
   ; Back Cursor to the begin of line
   INC r11 
