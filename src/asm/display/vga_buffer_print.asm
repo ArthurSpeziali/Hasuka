@@ -332,7 +332,7 @@ inter_str:
 
   ; DLT-LINE 
   CMP al, 0xE                             ; 0xE = 14 = . -> Clear Line 
-  JE delete_line                          ; If equal, delete all line
+  JE delete_line                          ; If equal, delete all line before cursor
 
 
   ; Other breakpoints

@@ -12,7 +12,7 @@ build/zig/%.o: src/zig/%.zig
 	zig build-obj $< -target x86_64-freestanding -OReleaseSmall -femit-bin=$@
 
 compile: $(ALL_OBJ)
-	ld -T linker.ld -n $^ -o $(TARGET) -nostdlib -static 
+	ld -m elf_x86_64 -T linker.ld -n $^ -o $(TARGET) -nostdlib -static 
 
 geniso: 
 	cp $(TARGET) iso/boot
