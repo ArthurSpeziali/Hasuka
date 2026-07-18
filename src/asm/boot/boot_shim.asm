@@ -13,44 +13,43 @@ extern kernel_main                             ; The kernel in Assembly (To be l
 ; Stack memory, only reserve for in the future to use
 section .bss align=16
   boot_stack: 
-    resb 0x4000                                  ; 16 KB
-
+    RESB 0x4000                                  ; 16 KB
   boot_stack_top:
 
 
 ; Page Tables in  align 4K
 align 4096  
 pml4:
-  resb 4096                                  ; Page Map Level 4 = 512 GB
+  RESB 4096                                  ; Page Map Level 4 = 512 GB
 
 align 4096
 pdpt:                                          ; Page Directory Page Pointer = 1GB 
-  resb 4096
+  RESB 4096
 
 align 4096                                     ; Page Directory = 2 MB
 pd:
-  resb 4096
+  RESB 4096
 
 
 ; GDT
 section .data align=16
 gdt64:
-  dq 0                                       ; Null descriptor. Intel specification
+  DQ 0                                       ; Null descriptor. Intel specification
 
   ; Code in 64-bit
-  dq 0x00209A0000000000                      ; Flags: present, executable, readable, long mode  
+  DQ 0x00209A0000000000                      ; Flags: present, executable, readable, long mode  
   ;   0x0020 = Flags (bit 53 = L bit → 1 = 64-bit code segment)
   ;   0x9A   = Acess + Type:
   ;     9 = 1001 → P=1 (present), DPL=00 (ring 0), S=1 (code/data)
   ;     A = 1010 → X=1 (executable), DC=0, R=1 (readable), A=0
   ;   0x0... = Ignore
-  dq 0x0000920000000000                      ; Data
+  DQ 0x0000920000000000                      ; Data
 gdt64_end: 
 
 ; GDT Pointer 
 gdt64_ptr:
-  dw gdt64_end - gdt64 - 1                   ; Size - 1 = Intel specification
-  dq gdt64                                   ; Linear address                   
+  DW gdt64_end - gdt64 - 1                   ; Size - 1 = Intel specification
+  DQ gdt64                                   ; Linear address                   
 
 
 ; Here is the Main Code

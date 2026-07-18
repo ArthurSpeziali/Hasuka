@@ -163,7 +163,7 @@ loop_string:
   CALL write_byte
 
   ; Revaluete the total chars in line, then move this value to memory variable 
-  CALL read_byte 
+  CALL search_byte 
   MOV byte [vga_absolute_chars], al      ; Use AL here (The max value is 80, which fits in a byte)
 
   INC rcx                                 ; Increases for Geral counter
@@ -188,6 +188,13 @@ write_byte:
   RET
 
 read_byte: 
+  ; Read the char count in RAX, and return his value in VGA Buffer also in RAX
+  SHL r8, 1 
+  MOV ax, word [VGA_BFF + 2*rcx+r8]
+  SHR r8, 1 
+  RET
+
+search_byte: 
   PUSH rdi 
   PUSH rcx
   ; Search for first 0-byte of the line, and return in RAX the char counter
@@ -212,7 +219,7 @@ read_byte:
   POP rdi
   RET
 
-pull_byte:
+trim_byte:
   ; Back N bytes to visual buffer in line. Where N is RAX 
   ; Before: "····Hello", After (RAX = 3): "·Hello"
   PUSH rdi                                ; First, save all registers 
@@ -221,8 +228,6 @@ pull_byte:
 
   ; First, detect if there's any byte (And if has, how many) different to zero. Then put this value in RAX
   CALL .detect_zero_byte
-
-  Debug rax
 
   ; Loop to pull the chars in line RAX times 
   CALL .loop
@@ -277,6 +282,33 @@ pull_byte:
 .return:
   RET
 
+pull_byte:
+  ; Pull the entire words in front (in line) in cursor position (VGA_COL * R10 + R9), RAX times
+  ; Save registers
+  PUSH rdi 
+  PUSH rsi 
+  PUSH rcx 
+  
+  ; Source position (Defaul postion + 2 words)
+  IMUL rsi, r10, VGA_COL
+  ADD rsi, r9 
+  ADD rsi, VGA_BFF+4
+  
+  ; Destionaton is source - 1 word
+  MOV rdi, rsi 
+  SUB rdi, 2
+  
+  ; How many it we'll be executed (RAX)
+  MOV rcx, rax 
+
+  ; Then executed it
+  REP MOVSW 
+
+  ; Recovery registers
+  POP rcx 
+  POP rsi 
+  POP rdi
+  RET
 
 
 need_reset:
@@ -318,8 +350,8 @@ inter_str:
   JE delete_char                          ; If equal, delete the previous char
 
   ; ERS-CHAR                              
-  ; CMP al, 0x9                             ; 0x9 = 9 = \d -> Delete 
-  ; JE erase_char                           ; If equal, delte the next char
+  CMP al, 0x9                             ; 0x9 = 9 = \d -> Delete 
+  JE erase_char                           ; If equal, delte the next char
 
 
   ; NXT-LINE
@@ -445,6 +477,48 @@ delete_char:
 .return: 
   RET
  
+erase_char:
+  ; Verify if the next VGA Buffer char is 0, if yes, then return
+  MOV rax, r9                             ; Read Byte return the value to the given pos in line (In RAX)
+  CALL read_byte 
+
+  CMP al, 0                               ; If the value is 0, then exit
+  JE .linear
+
+  ; Overwrite RAX
+  ; Next char
+  INC r11 
+  MOV al, [rdi + r11]
+
+  ; If the next byte is a breakpoint, then uses recursion to show the next valid char
+  CMP al, 0x1F
+  JLE .recursion
+  JG .else
+.return: 
+  RET
+.recursion:
+  ; Executes the main code, then jump to inter_str (Continues the loop)
+  CALL .else
+  JMP inter_str
+.linear: 
+  ; In linear string... we do nothing, just pass the char 
+  INC r11 
+  MOV al, [rdi + r11]
+  RET
+.else:
+  PUSH rax                                ; Save RAX, because we will use it 
+
+  ; Calculate the chars in front od cursor 
+  MOVZX rax, byte [vga_absolute_chars]    ; Use the value in vga_absolute_chars (Convert Byte in Quad)
+  SUB rax, r9                             ; Subtract the total with the cursor 
+
+  ; Using R9 to referencial, pull RAX bytes (Words actually) in line
+  CALL pull_byte
+
+  ; Restore and return
+  POP rax 
+  RET
+
 next_line:
   ; Next char (Withou this breakpoint)
   INC r11 
@@ -561,7 +635,7 @@ delete_line:
   CALL write_byte
  
   ; If there's any 0 byte before an valid byte, then reajust and pull these 0 bytes
-  CALL pull_byte
+  CALL trim_byte
 
   ; If R9 = 0, then return without any effect (And restore the saved regissters)
   POP rax
