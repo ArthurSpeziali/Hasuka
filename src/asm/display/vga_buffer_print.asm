@@ -289,10 +289,15 @@ pull_byte:
   PUSH rsi 
   PUSH rcx 
   
+  ; RBX as temporally registers 
+  MOV rbx, r9                             ; RBX = R9 * 2
+  SHL rbx, 1
+
   ; Source position (Defaul postion + 2 words)
   IMUL rsi, r10, VGA_COL
-  ADD rsi, r9 
-  ADD rsi, VGA_BFF+4
+  ADD rsi, rbx                            ; RSI = RBX = 2*R9 = Words until cursor
+  ADD rsi, VGA_BFF
+  ADD rsi, 2
   
   ; Destionaton is source - 1 word
   MOV rdi, rsi 
@@ -366,6 +371,9 @@ inter_str:
   CMP al, 0xE                             ; 0xE = 14 = . -> Clear Line 
   JE delete_line                          ; If equal, delete all line before cursor
 
+  ; ERS-LINE 
+  CMP al, 0xF                             ; 0xF = 15 = . -> Erase Line
+  JE erase_line                           ; If equal, erase the all line after cursor
 
   ; Other breakpoints
   CMP al, 0xA                             ; 0xA = 10 = \n -> Newline
@@ -494,8 +502,6 @@ erase_char:
   CMP al, 0x1F
   JLE .recursion
   JG .else
-.return: 
-  RET
 .recursion:
   ; Executes the main code, then jump to inter_str (Continues the loop)
   CALL .else
@@ -504,6 +510,30 @@ erase_char:
   ; In linear string... we do nothing, just pass the char 
   INC r11 
   MOV al, [rdi + r11]
+
+  CALL .ghosty_bug                        ; But if the next linear string character is 0, decrease R9 and RCX and back some chars in RAX
+  RET                                     ; Just ignore all and return
+.ghosty_bug: 
+  ; Use RBX to non-determined value (RBX is R9 Decrease)
+  MOV rbx, r9 
+  DEC rbx 
+
+  ; If the byte is 0, then R9 is RBX (R9 = R9 - 1)
+  CMP al, 0 
+  CMOVZ r9, rbx  
+
+  ; Same work, but decreases RCX if nescessary
+  MOV rbx, rcx 
+  DEC rbx 
+
+  CMP al, 0 
+  CMOVZ rcx, rbx
+
+  ; Now, if the next char (AL) is 0, we back one in linear string (The last valid character)
+  MOVZX rbx, byte [rdi + r11 - 2]         ; We use movZX to convert 8-bits to 64-bits operants, CMOVZ just aceppt 16-bit or greater
+
+  CMP al, 0 
+  CMOVZ rax, rbx
   RET
 .else:
   PUSH rax                                ; Save RAX, because we will use it 
@@ -518,6 +548,7 @@ erase_char:
   ; Restore and return
   POP rax 
   RET
+
 
 next_line:
   ; Next char (Withou this breakpoint)
@@ -653,6 +684,90 @@ delete_line:
   CMP r9, 0
   JZ .return
   JNZ .loop
+
+erase_line: 
+  ; Check if we are in the final in VGA BUffer (Next value is 0),
+  ; If true, so we just return 
+  MOV rax, r9                             ; RAX = Cursor position 
+  CALL read_byte
+
+  CMP al, 0                               ; If the next value in buffer is null
+  JE .linear                              ; Then we call the linear string function
+
+  ; Overwrite RAX 
+  ; Next Char 
+  INC r11
+  MOV al, [rdi + r11]
+
+  ; Detect if the next char is a breakpoint 
+  CMP al, 0x1F 
+  JE .recursion 
+  JNE .else 
+.linear: 
+  ; Next char
+  INC r11 
+  MOV al, [rdi + r11]
+
+  CALL .ghosty_bug                        ; But if the next linear string character is 0, decrease R9 and RCX and back some chars in RAX
+  RET                                     ; Just ignore all and return
+.ghosty_bug: 
+  ; Use RBX to non-determined value (RBX is R9 Decrease)
+  MOV rbx, r9 
+  DEC rbx 
+
+  ; If the byte is 0, then R9 is RBX (R9 = R9 - 1)
+  CMP al, 0 
+  CMOVZ r9, rbx  
+
+  ; Same work, but decreases RCX if nescessary
+  MOV rbx, rcx 
+  DEC rbx 
+
+  CMP al, 0 
+  CMOVZ rcx, rbx
+
+  ; Now, if the next char (AL) is 0, we back one in linear string (The last valid character)
+  MOVZX rbx, byte [rdi + r11 - 2]         ; We use movZX to convert 8-bits to 64-bits operants, CMOVZ just aceppt 16-bit or greater
+
+  CMP al, 0 
+  CMOVZ rax, rbx
+  RET
+.recursion:
+  CALL .else 
+  JMP inter_str 
+.else:
+  ; Save all STOcc Registers
+  PUSH rax 
+  PUSH rdi 
+  PUSH rcx 
+
+  ; Total of characters to be nullified (Total chars - current cursor)
+  MOVZX rcx, byte [vga_absolute_chars]
+  SUB rcx, r9 
+
+  ; RBX as temporally register 
+  MOV rbx, r9 
+  SHL rbx, 1                              ; RBX = 2*R9
+
+  ; Current possition in VGA Buffer
+  IMUL rdi, r10, VGA_COL 
+  ADD rdi, rbx                            ; RDI = RBX = 2*R9 = Total words until cursor
+  ADD rdi, VGA_BFF
+  
+  ; Zero value with default color to STOre
+  MOV ax, 0x0F00
+  
+  REP STOSW                               ; Start store zero value in RDI, until RCX > 0
+
+  ; Restore the registers and return 
+  POP rcx 
+  POP rdi 
+  POP rax  
+
+  ; Return the char 0 (For clean the current char in cursor), and decreases R9 for the erased char
+  MOV al, 0
+  DEC r9
+  RET                                     ; Return
 
 
 ; Normal breakpoints
