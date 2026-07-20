@@ -21,6 +21,14 @@ extern vga_saver_line
 extern vga_absolute_chars
 
 ; Macros Here 
+%macro DoubleReturn 0
+  ; We want to return 2 times, so 'RET RET' does not work
+  ; When we use CALL, the RIP is save in the Stack (Who is controlled by RSP)
+  ; So, we can just discard that last CALL (Entry)
+  ; Using 'POP register' or adding 8 in RSP (That's whats we do)
+  ADD rsp, 8                              ; Discard last entry and return 
+  RET 
+%endmacro 
 %macro DebugAny 1 
   PUSH rax 
   MOVZX rax, %1 
@@ -86,7 +94,6 @@ vga_buffer_print:
   ; Parser each char, put in your identation, intepolating breakpoints, scrolling the screen
   ; This function is a half ungly...
   CALL loop_string                           
-  
 
   ; This function save all 4 ccursor registers for next call of this function 
   ; Inverted of .restore_cursor
@@ -150,14 +157,13 @@ vga_buffer_print:
   JMP done
 
 
-
 ; String loopping
 loop_string:
   ; AL = Bottom of AX, just 8-bits, same size of a string
   ; al = char
   MOV al, [rdi + r11]                     ; Point to the begin of string + each char (R11)
   ; Jumps to interpolate the string, to find breakpoints, like '\n'
-  CALL inter_str                         
+  CALL inter_str   
 
   ; So, calls to write the byte (AL) in correct position with R8 and RCX
   CALL write_byte
@@ -190,7 +196,7 @@ write_byte:
 read_byte: 
   ; Read the char count in RAX, and return his value in VGA Buffer also in RAX
   SHL r8, 1 
-  MOV ax, word [VGA_BFF + 2*rcx+r8]
+  MOV ax, word [VGA_BFF + 2*rax+r8]
   SHR r8, 1 
   RET
 
@@ -341,6 +347,13 @@ reset_col:
   RET
 
 inter_str:
+  ; Execute some functions that have in loop_string and it's nescessary
+  ; Revaluete the total chars in line, then move this value to memory variable 
+  PUSH rax 
+    CALL search_byte 
+    MOV byte [vga_absolute_chars], al      ; Use AL here (The max value is 80, which fits in a byte)
+  POP rax
+
   ; Cursor breakpoints 
   ; NXT-CHAR                               
   CMP al, 0x6                             ; 0x6 = 6 = . -> Next Char 
@@ -383,14 +396,8 @@ inter_str:
   JE .double_return                       ; If equal, return to main function 
 
   RET                                     ; Else, continue the parser
-.double_return: 
-  ; We want to return 2 times, so 'RET RET' does not work
-  ; When we use CALL, the RIP is save in the Stack (Who is controlled by RSP)
-  ; So, we can just discard that last CALL (Entry)
-  ; Using 'POP register' or adding 8 in RSP (That's whats we do)
-  ADD rsp, 8                              ; Discard last entry and return 
-  RET
- 
+.double_return:
+  DoubleReturn
 
 ; Cursor breakpoints
 next_char:
@@ -404,6 +411,25 @@ next_char:
   JG .else 
 .return: 
   RET
+.ghosty_bug:
+  ; If both next char is 0 and our position are in limit, we decrease R9 and RCX and make a double return
+  ; Because if we are in the end of line, and there's no char in linear string, what will we print in our place? 
+  ; So, we just exit in this function, sending a double return with RSP manipulation
+
+  ; If There's nothing more in linear string, 
+  CMP al, 0 
+  JNZ .return 
+
+  ; And we are in end of line (Our cursor)
+  CMP r9, VGA_COL-1
+  JNZ .return 
+  
+  ; So decrease this registers 
+  DEC r9 
+  DEC rcx 
+
+  ; And back to loop_string
+  DoubleReturn
 .recursion:
   ; Calls the main code, then jump to inter_str (Continues the loop)
   CALL .else
@@ -424,6 +450,9 @@ return_char:
   INC r11 
   MOV al, [rdi + r11]
 
+  ; A different Ghosty Bug Handler 
+  CALL .ghosty_bug
+  
   ; IF we are in the begin of line, stops
   CMP r9, 0
   JZ .return 
@@ -432,6 +461,25 @@ return_char:
   CMP al, 0x1F
   JLE .recursion 
   JG .else 
+.ghosty_bug:
+  ; If both next char and our position are 0, we decrease R9 and RCX and make a double return
+  ; Because if we are in the begin of line, and there's no char in linear string, what will we print in our place? 
+  ; So, we just exit in this function, sending a double return with RSP manipulation
+
+  ; If There's nothing more in linear string, 
+  CMP al, 0 
+  JNZ .return 
+
+  ; And we are in begin of line (Our cursor)
+  CMP r9, 0
+  JNZ .return 
+  
+  ; So decrease this registers 
+  DEC r9 
+  DEC rcx 
+
+  ; And back to loop_string
+  DoubleReturn
 .return: 
   RET
 .recursion:
@@ -448,11 +496,13 @@ delete_char:
   INC r11                                 ; Jumps to the next char, replacing the '\b'
   MOV al, [rdi + r11]                     ; Jumps to the next char (Ignoring the \b)
 
+  ; If in begging of line, just exit
   CMP r9, 0
   JZ .return
 
+  
   ; For Ghosty Delete char Bug, wer need to deacrease R9 if the enxt byte is 0
-  CALL .ghosty_bug
+  ; CALL .ghosty_bug
 
   ; We compare the actual char with other breakpoints, if true, then inicializes an recursion, zering each \b byte in VGA Buffer 
   ; The breakpoints stops at 0x1F (31) in ASCII Table. So, if is a breakpoint (\r, \n...), it continues the loop
@@ -477,7 +527,7 @@ delete_char:
   CALL write_byte                         ; Writes byte directly in VGA Buffer 
   POP rax                                 ; Restore the char
 
-  JMP inter_str                         ; Continues the Loop
+  JMP inter_str                          ; Continues the Loop
 .else:  
   DEC rcx                                 ; If the next byte is not \b, then just move the cursor (Erase the char) one time 
   DEC r9 
@@ -505,7 +555,7 @@ erase_char:
 .recursion:
   ; Executes the main code, then jump to inter_str (Continues the loop)
   CALL .else
-  JMP inter_str
+  JMP inter_str 
 .linear: 
   ; In linear string... we do nothing, just pass the char 
   INC r11 
@@ -551,7 +601,7 @@ erase_char:
 
 
 next_line:
-  ; Next char (Withou this breakpoint)
+  ; Next char (Without this breakpoint)
   INC r11 
   MOV al, [rdi + r11]
 
@@ -560,7 +610,7 @@ next_line:
   JG .else 
 .recursion:
   CALL .else 
-  JMP inter_str
+  JMP inter_str 
 .else:
   ; So, we calculate the rest of chares in line, that's vga_absolute_chars - R9 
   ; We use temporally RBX to evaluate the result of subtration 
@@ -605,7 +655,8 @@ return_line:
   DEC rcx
   RET                                     ; Then return
 .recursion:
-  JMP inter_str                       ; Backs to the interpolation string function
+  CALL .else
+  JMP inter_str                        ; Backs to the interpolation string function
 .else:
   ; If the next byte is not invalid (Zero byte or \r byte)
   ; Here, we subtract RCX by R9 (New chars will be placed at the begin of line)
@@ -651,16 +702,13 @@ delete_line:
 .recursion:
   ; Executes the main code, then jump to inter_str (Continues the loop)
   CALL .else
-  JMP inter_str
+  JMP inter_str 
 .else:
   ; Saves RAX, because we will use it in the loop
   PUSH rax
 
-  ; MOVes AL (RAX) to 0 in a byte
-  MOV al, 0x0
-
   ; Then, rolls the loop and wait for return
-  CALL .loop
+  CALL .decide_loop
   
   ; For last, writes the last byte in First char of line
   CALL write_byte
@@ -671,11 +719,20 @@ delete_line:
   ; If R9 = 0, then return without any effect (And restore the saved regissters)
   POP rax
   RET
-.loop:
-  ; First, writes 0 in new byte location (RCX - 1)
+.decide_loop:
+  ; If the next char is null (0), then invert some operations 
+  CMP al, 0
+  JZ .loop_ghosty
+  JNZ .loop
+.loop_ghosty:
+  ; We first CALL write_byte, so after decrease the registers
+  ; MOVes AL (RAX) to 0 in a byte
+  MOV al, 0x0
+  
+  ; So, writes 0 in new byte location (RCX - 1)
   CALL write_byte
 
-  ; So, decrease R9 (By 1), it's the cursor location in line. This block infinity loop
+  ; First, decrease R9 (By 1), it's the cursor location in line. This block infinity loop
   DEC r9 
   ; Then, decreases RCX, where the next byte will be placed (By write_byte)
   DEC rcx
@@ -683,10 +740,27 @@ delete_line:
   ; If R9 is 0, then over the loop, else, repeats
   CMP r9, 0
   JZ .return
+  JNZ .loop_ghosty
+.loop:
+  ; We first decrease the registers, so after CALL write_byte
+  ; MOVes AL (RAX) to 0 in a byte
+  MOV al, 0x0
+
+  ; First, decrease R9 (By 1), it's the cursor location in line. This block infinity loop
+  DEC r9 
+  ; Then, decreases RCX, where the next byte will be placed (By write_byte)
+  DEC rcx
+
+  ; So, writes 0 in new byte location (RCX - 1)
+  CALL write_byte
+  
+  ; If R9 is 0, then over the loop, else, repeats
+  CMP r9, 0
+  JZ .return
   JNZ .loop
 
 erase_line: 
-  ; Check if we are in the final in VGA BUffer (Next value is 0),
+  ; Check if we are in the begin in VGA BUffer 
   ; If true, so we just return 
   MOV rax, r9                             ; RAX = Cursor position 
   CALL read_byte
@@ -764,10 +838,18 @@ erase_line:
   POP rdi 
   POP rax  
 
+  ; Now, if the next char is 0 in linear string, we have to decrease some registers (R9, RCX and Zeroes AL) 
+  CMP r9, 0 
+  JNZ .erase_bug 
+
+  RET                                     ; Return
+.erase_bug:
+  ; If the next byte is null, so modify some registers
   ; Return the char 0 (For clean the current char in cursor), and decreases R9 for the erased char
   MOV al, 0
   DEC r9
-  RET                                     ; Return
+
+  RET 
 
 
 ; Normal breakpoints
@@ -826,7 +908,7 @@ newline_offset:
   RET
 .recursion: 
   INC r10                                 ; Increases one line and jump to function (Loop)
-  JMP inter_str
+  JMP inter_str 
 .else:
   CMP r10, VGA_LINE-1
   JGE .return

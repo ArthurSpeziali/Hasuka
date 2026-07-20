@@ -23,12 +23,9 @@ export fn kernel_main() noreturn {
   stdout.clear();
 
   // Welcome print
-  // stdout.print(
-  //   arc.WELCOME_STR
-  // );
-
-  stdout.print("ABCdef\x07\x07\x07\x0F");
-  // stdout.print("A");
+  stdout.print(
+    arc.WELCOME_STR
+  );
 
   // Suspend the kernel
   debug.kernel_wait();
