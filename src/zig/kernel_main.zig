@@ -71,8 +71,10 @@ export fn isr_handler(vector: usize) void {
 export fn irq_handler(vector: usize) void {
   switch (vector) {
     33 => {
-      // _ = kbd.get_code();
-      stdout.serial("Keyboard?");
+      const c = kbd.get_code();
+      stdout.serial(
+        debug.convert_hex(c)
+      );
     },
     else => {}
   }
