@@ -26,7 +26,7 @@ export fn kernel_main() noreturn {
   stdout.print(
     arc.WELCOME_STR
   );
-
+  
   // Suspend the kernel
   debug.kernel_wait();
 }
@@ -71,10 +71,8 @@ export fn isr_handler(vector: usize) void {
 export fn irq_handler(vector: usize) void {
   switch (vector) {
     33 => {
-      const c = kbd.get_code();
-      stdout.serial(
-        debug.convert_hex(c)
-      );
+      // If receive a Keyboard IRQ, we handle it
+      kbd.pick_key(1);                         // Print directly in VGA Buffer (1 = VGA Buffer Keyfilter ID)
     },
     else => {}
   }

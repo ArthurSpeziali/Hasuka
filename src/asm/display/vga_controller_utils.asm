@@ -7,6 +7,34 @@ BITS 64
 ; CONSTANTS 
 VGA_COL equ 80
 
+; Macros here
+%macro DebugAny 1 
+  PUSH rax 
+  MOVZX rax, %1 
+  Debug rax 
+  POP rax
+%endmacro 
+%macro Debug 1
+  extern debug_hex
+  extern com_serial_print
+  PUSH rax
+  PUSH rdx
+  PUSH rdi 
+  PUSH rsi
+
+  MOV rdi, %1 
+  CALL debug_hex
+  MOV rdi, rax
+  MOV rsi, rdx
+  CALL com_serial_print
+
+  POP rsi 
+  POP rdi 
+  POP rdx
+  POP rax 
+%endmacro
+
+
 
 section .text
 ; Upscaling the max lines from 25 to 32

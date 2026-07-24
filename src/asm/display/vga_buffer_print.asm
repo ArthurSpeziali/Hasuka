@@ -1,6 +1,6 @@
 ; Output print in VGA Buffer 
-; Receives *RDI as String, RSI as String's length
-; *[uint8] RDI (str_ptr), uint16 RSI-16 (str_len)
+; Receives *RDI as String, SI as String's length
+; *[uint8] RDI (str_ptr), uint16 SI (str_len)
 
 BITS 64
 
@@ -183,6 +183,7 @@ loop_string:
   ; In this case, R11W is the 16-bit version of R11 (W for Word)
   CMP r11w, si                            ; Checks if R11W == String Length. String limit
   JB loop_string                          ; If bellow (Unsigned operation), continues the loop
+
   RET                                     ; Else, return to main function
 
 write_byte:
@@ -496,13 +497,11 @@ delete_char:
   INC r11                                 ; Jumps to the next char, replacing the '\b'
   MOV al, [rdi + r11]                     ; Jumps to the next char (Ignoring the \b)
 
-  ; If in begging of line, just exit
-  CMP r9, 0
-  JZ .return
-
-  
+  ; If in begging of line, jump to ghosty bug
   ; For Ghosty Delete char Bug, wer need to deacrease R9 if the enxt byte is 0
-  ; CALL .ghosty_bug
+  CMP r9, 0
+  JZ .ghosty_bug
+
 
   ; We compare the actual char with other breakpoints, if true, then inicializes an recursion, zering each \b byte in VGA Buffer 
   ; The breakpoints stops at 0x1F (31) in ASCII Table. So, if is a breakpoint (\r, \n...), it continues the loop
@@ -517,6 +516,13 @@ delete_char:
 
   CMP al, 0
   CMOVZ r9, rbx                           ; If AL == 0, then R9 = R9-1
+
+  ; Same work for RCX
+  MOV rbx, rcx                            ; RBX = RCX - 1
+  DEC rbx 
+
+  CMP al, 0
+  CMOVZ rcx, rbx                          ; If AL == 0, then RCX = RCX-1
   RET
 .recursion: 
   DEC rcx                                 ; So, backs 1 space in te memory, replacing the previous character 
@@ -864,9 +870,9 @@ newline_offset:
 
   ; Inspect if it need to scroll the screen 
   CALL need_scroll                      
-  XOR r9, r9                              ; Zeros the collum cursor, back in the begin of line
+  XOR r9, r9                                ; Zeros the collum cursor, back in the begin of line
 
-  CALL .ghosty_bug                        ; Checks if the ghosty newline bug has going
+  ; CALL .ghosty_bug                        ; Checks if the ghosty newline bug has going
 
   ; We use recursion, when the next char is like a '\n' or '\b'
   ; If does not implemented this feature (And the next char be '\n'), so it would print the "Inavalid Code", and doesn't jump line
@@ -906,8 +912,8 @@ newline_offset:
   ADD r8, VGA_COL - 1                     ; Adds to R8, VGA collums minus 1
   SUB r8, r9                              ; Subtract the offset to the cursor
   RET
-.recursion: 
-  INC r10                                 ; Increases one line and jump to function (Loop)
+.recursion:
+  CALL .else                              ; Increases one line and jump to function (Loop)
   JMP inter_str 
 .else:
   CMP r10, VGA_LINE-1
@@ -926,6 +932,7 @@ need_scroll:
   CALL vga_buffer_scroll_bellow           ; Uses external function to scrol the screen to down
   SUB rcx, r9                             ; Keep identation, don't copy of the precious item in the same line
   RET
+
 
 done:
   POP r11
