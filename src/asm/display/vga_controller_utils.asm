@@ -37,7 +37,7 @@ VGA_COL equ 80
 
 
 section .text
-; Upscaling the max lines from 25 to 32
+; Upscaling the max lines from 25 to 25
 ; no input no output
 global vga_controller_max_lines 
 vga_controller_max_lines: 
@@ -45,14 +45,14 @@ vga_controller_max_lines:
   PUSH rbx
   PUSH rdx 
 
-  ; We set to display 32 Lines (The max number). 
-  ; I know there's way to put a 10-bits number using the 0x7 Port, but 32 is a good number to 4:3 portrait
+  ; We set to display 25 Lines (The max number). 
+  ; I know there's way to put a 10-bits number using the 0x7 Port, but 25 is a good number to 4:3 portrait
   ; Setting the intern VGA register to Vertical size
   MOV dx, 0x3D4                              ; Port of VGA register select
   MOV al, 0x12                               ; Which VGA register we want
   OUT dx, al    
   MOV dx, 0x3D5                              ; Now, we define the data who pass 
-  MOV al, 255                                ; The max number of an byte, that's 32 lines in total
+  MOV al, 143                                ; The max number of an byte, that's 25 lines in total
   OUT dx, al                                 ; So, the calc is: (X-16)*16-1 
 
   JMP done                                   ; So return

@@ -6,7 +6,7 @@ BITS 64
 ; CONSTANTS
 VGA_BFF equ 0xB8000                            ; VGA Memmory Address
 VGA_COL equ 80                                 ; 80 VGA Collums
-VGA_LINE equ 32                                ; 32 VGA Lines
+VGA_LINE equ 25                                ; 25 VGA Lines
 
 ; Extern Data 
 ; I don't think import VGA History is nescessary 

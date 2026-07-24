@@ -4,9 +4,10 @@ ASM/
 HASKELL/
 build/
 
+iso/hasuka.iso
+iso/boot/kernel.elf
 src/hs/jhc 
 src/hs/librts
-iso/hasuka.iso
 
 Session.vim
 GEMINI.md

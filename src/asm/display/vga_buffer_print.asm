@@ -7,7 +7,7 @@ BITS 64
 ; CONSTANTS
 VGA_BFF equ 0xB8000                       ; VGA Memmory Address
 VGA_COL equ 80                            ; 80 VGA Collums
-VGA_LINE equ 32                           ; 32 VGA Lines
+VGA_LINE equ 25                           ; 25 VGA Lines
 
 ; Extern Functions 
 extern vga_buffer_scroll_bellow
@@ -337,7 +337,7 @@ reset_col:
   DEC r11                                ; Goes back one character
   MOV byte [rdi + r11], 94               ; Write in region of memory where the next label will execute to find the next char (AL)
 
-  CMP r10, VGA_LINE-1                    ; If the line cursor is bellow of 32 lines
+  CMP r10, VGA_LINE-1                    ; If the line cursor is bellow of 25 lines
   JGE .else
 
   INC r10                                ; Increaes a line to Line Cursor (R10)
@@ -406,7 +406,7 @@ next_char:
   INC r11 
   MOV al, [rdi + r11]
 
-  ; If the char is bellow of 32 (The breakpoints space), then use recursion to show the next valid char
+  ; If the char is bellow of 25 (The breakpoints space), then use recursion to show the next valid char
   CMP al, 0x1F
   JLE .recursion 
   JG .else 
@@ -458,7 +458,7 @@ return_char:
   CMP r9, 0
   JZ .return 
 
-  ; If the char is bellow of 32 (The breakpoints space), then use recursion to show the next valid char
+  ; If the char is bellow of 25 (The breakpoints space), then use recursion to show the next valid char
   CMP al, 0x1F
   JLE .recursion 
   JG .else 
@@ -861,7 +861,7 @@ erase_line:
 ; Normal breakpoints
 newline_offset:
   INC r11                                 ; Jumps to the next char, replacing the '\n'
-  CALL .increase_reg                      ; Just increases r9 and rcx if the line is bellow of 32 lines
+  CALL .increase_reg                      ; Just increases r9 and rcx if the line is bellow of 25 lines
 
   MOV al, [rdi + r11]                     ; Jumps to the next char (Ignoring the \n)
 
@@ -907,7 +907,7 @@ newline_offset:
   CMP r10, VGA_LINE-1
   JGE .return 
 
-  ; If it jumps a line, then jumps the match zero-bits value (Jumps 32 spaces, then jumps 32 words (bytes * 2))
+  ; If it jumps a line, then jumps the match zero-bits value (Jumps 25 spaces, then jumps 25 words (bytes * 2))
   INC rcx                                 ; Add in RCX to continue in normal flow 
   ADD r8, VGA_COL - 1                     ; Adds to R8, VGA collums minus 1
   SUB r8, r9                              ; Subtract the offset to the cursor
