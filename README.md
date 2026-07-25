@@ -73,7 +73,7 @@ $ make
 
 The ISO will be created at:
 
-- `./hasuka.iso`
+- `iso/hasuka.iso`
 
 ---
 
@@ -82,7 +82,7 @@ The ISO will be created at:
 ℹ️ The ISO is less than 50MB :
 
 ```sh
-$ qemu-system-x86-64 -cdrom hasuka.iso
+$ qemu-system-x86-64 -cdrom iso/hasuka.iso
 ```
 
 ---
@@ -92,7 +92,7 @@ $ qemu-system-x86-64 -cdrom hasuka.iso
 ⚠ Replace `/dev/sdX` with the correct device for your USB stick:
 
 ```sh
-$ sudo dd if=hasuka.iso of=/dev/sdX oflags=sync bs=4M status=progress
+$ sudo dd if=iso/hasuka.iso of=/dev/sdX oflags=sync bs=4M status=progress
 ```
 
 ---

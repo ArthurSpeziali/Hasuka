@@ -1,7 +1,7 @@
 include config.mk
 
 .PHONY: clean mkdir compile geniso copy debug check
-all: clean mkdir compile geniso copy
+all: clean mkdir compile geniso 
 
 build/asm/%.o: src/asm/%.asm
 	@mkdir -p $(@D)
@@ -25,10 +25,10 @@ check: clean mkdir $(ASM_OBJ)
 
 
 clean:
-	rm -rf $(ISO) build/*
+	rm -rf $(ISO) build/* iso/boot/kernel.elf
 
 copy: 
-	cp $(ISO) hasuka$N.iso
+	cp $(ISO) /tmp/hasuka$N.iso
 
 debug:
 	@echo "$(ZIG_SRC) \n$(ZIG_OBJ)\n"

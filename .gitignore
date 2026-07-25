@@ -4,7 +4,7 @@ ASM/
 HASKELL/
 build/
 
-hasuka.iso
+iso/hasuka.iso
 iso/boot/kernel.elf
 src/hs/jhc 
 src/hs/librts
