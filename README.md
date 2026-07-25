@@ -1,3 +1,7 @@
+# HasukaOS, What is this? Is it to eat?
+
+Hasuka is a small x86_64 Assembly-first kernel with a human-interface layer, where the low-level core runs in Assembly and Zig is used only for orchestration (e.g., dispatching and switch/case routing) without any C runtime. It focuses on a minimal, text-based system built around VGA text output and a custom “cursor breakpoints” mechanism, with serial debug helpers and a progressive interrupt bring-up using the legacy PIC (keyboard first). Advanced features like graphics, full filesystem/ disk writing, floating-point, complex protocols, extensive driver modules, portability to i386, and alternative bootloaders are deferred to keep it small and suitable for running inside a VM.
+
 ## Name: acronym, meaning, and pronunciation
 
 The name is **“Hasuka”**, pronounced like:
