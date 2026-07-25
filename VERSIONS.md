@@ -1,4 +1,4 @@
-# HasukaOs       => 0.1.2
+# HasukaOs       => 0.1.3
 
 ## Dependencies:
 - grub          => 2:2.12 
