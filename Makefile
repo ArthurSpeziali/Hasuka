@@ -28,7 +28,7 @@ clean:
 	rm -rf $(ISO) build/*
 
 copy: 
-	cp $(ISO) /tmp/hasuka$N.iso
+	cp $(ISO) hasuka$N.iso
 
 debug:
 	@echo "$(ZIG_SRC) \n$(ZIG_OBJ)\n"

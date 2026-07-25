@@ -10,7 +10,7 @@ pub const isCOM_OUTPUT: bool = false;
 pub const WELCOME_STR: []const u8 =
     \\=========================================----------------
     \\|  Welcome! You're in Hasuka System.    | / Version: \ |
-    \\|       The Sky is your Dreams!         | \ 0.1.1    / |
+    \\|       The Sky is your Dreams!         | \ 0.1.2    / |
     \\=========================================----------------
     \\             
     \\

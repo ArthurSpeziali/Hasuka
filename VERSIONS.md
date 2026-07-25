@@ -1,6 +1,6 @@
-HasukaOs        => 0.1.0
+# HasukaOs       => 0.1.2
 
-Dependencies:
+## Dependencies:
 - grub          => 2:2.12 
 - zig           => 0.16.0 
 - xorriso       => 1.5.4 
