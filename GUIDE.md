@@ -332,3 +332,6 @@ This guide is set up so new functions can be documented using the same template:
 - Returns (RAX/RDX…)
 - Behavior & side effects
 - Key consumers (which Zig module or IRQ path uses it)
+---
+
+### By: *Arthur Speziali*
